@@ -126,28 +126,13 @@ jobs:
           name: medsuite-cpanel-schema
           path: seeded-schema/
 
-      - name: Generate config.php from secrets
-        env:
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      - name: Copy config.kp.php into ZIP
         run: |
           mkdir -p dist/api
-          # Write config.php via PHP to avoid any shell heredoc indentation issues
-          php -r "
-          \$cfg = '<?php' . PHP_EOL
-            . 'return [' . PHP_EOL
-            . \"    'db_host'    => 'localhost',\" . PHP_EOL
-            . \"    'db_port'    => '3306',\" . PHP_EOL
-            . \"    'db_name'    => '\" . getenv('DB_NAME') . \"',\" . PHP_EOL
-            . \"    'db_user'    => '\" . getenv('DB_USER') . \"',\" . PHP_EOL
-            . \"    'db_pass'    => '\" . addslashes(getenv('DB_PASS')) . \"',\" . PHP_EOL
-            . \"    'jwt_secret' => '\" . addslashes(getenv('JWT_SECRET')) . \"',\" . PHP_EOL
-            . '];' . PHP_EOL;
-          file_put_contents('dist/api/config.php', \$cfg);
-          echo \"config.php generated.\n\";
-          "
+          # config.kp.php contains real credentials — rename to config.php after upload
+          cp public/api/config.kp.php dist/api/config.kp.php
+          # Placeholder config.php so the file exists (rename config.kp.php → config.php on server)
+          cp public/api/config.example.php dist/api/config.php
 
       - name: Copy PHP API backend into dist/api/
         run: |
