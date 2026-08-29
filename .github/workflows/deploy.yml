@@ -162,17 +162,23 @@ jobs:
           cp    public/api/schema.sql         dist/api/
           # NOTE: config.php was generated above — do NOT overwrite it
 
+          # Copy dotfiles that Vite skips (it doesn't copy .htaccess from public/)
+          cp public/.htaccess dist/.htaccess
+
       - name: Copy seeded schema SQL into dist/
         run: cp seeded-schema/cpanel-schema-seeded.sql dist/cpanel-schema-seeded.sql
 
       - name: Verify critical files exist
         run: |
-          echo "=== ZIP contents preview ==="
+          echo "=== dist/ top-level ==="
           ls -la dist/
+          echo "=== dist/api/ ==="
           ls -la dist/api/
-          echo "--- .htaccess ---"
-          cat dist/.htaccess
-          echo "--- config.php (redacted) ---"
+          echo "--- .htaccess present: $(test -f dist/.htaccess && echo YES || echo MISSING) ---"
+          echo "--- config.php present: $(test -f dist/api/config.php && echo YES || echo MISSING) ---"
+          echo "--- index.html present: $(test -f dist/index.html && echo YES || echo MISSING) ---"
+          echo "--- api/index.php present: $(test -f dist/api/index.php && echo YES || echo MISSING) ---"
+          # Verify config.php is valid PHP and shows correct DB name (no secret values)
           php -r "
           \$c = require 'dist/api/config.php';
           echo 'db_host: ' . \$c['db_host'] . PHP_EOL;
@@ -181,6 +187,12 @@ jobs:
           echo 'db_pass: [REDACTED]' . PHP_EOL;
           echo 'jwt_secret: [REDACTED]' . PHP_EOL;
           "
+          # Fail the step if any critical file is missing
+          test -f dist/.htaccess   || (echo "ERROR: .htaccess missing!" && exit 1)
+          test -f dist/index.html  || (echo "ERROR: index.html missing!" && exit 1)
+          test -f dist/api/config.php  || (echo "ERROR: config.php missing!" && exit 1)
+          test -f dist/api/index.php   || (echo "ERROR: api/index.php missing!" && exit 1)
+          echo "All critical files present."
 
       - name: Create ZIP for cPanel File Manager upload
         run: cd dist && zip -r ../medsuite-deploy.zip .
