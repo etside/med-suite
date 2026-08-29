@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { features } from "@/config/features";
 import { getPlatformAssertion, isWebAuthnSupported } from "@/lib/webauthn";
-import { Fingerprint, Lock, Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
+import { Fingerprint, Lock, Eye, EyeOff, Loader2, ArrowLeft, Check } from "lucide-react";
 
 const EnhancedAuth = () => {
   const navigate = useNavigate();
@@ -91,7 +90,6 @@ const EnhancedAuth = () => {
       setError("Enter your email first");
       return;
     }
-
     setLoading(true);
     setError("");
     try {
@@ -113,103 +111,175 @@ const EnhancedAuth = () => {
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
-      {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 right-20 w-72 h-72 bg-emerald-500/20 rounded-full filter blur-3xl animate-blob" />
-        <div className="absolute bottom-20 left-20 w-72 h-72 bg-cyan-500/20 rounded-full filter blur-3xl animate-blob animation-delay-2000" />
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* ── Left panel (desktop only) ──────────────────────────────────────── */}
+      <div className="hidden lg:flex lg:w-[45%] bg-[#1E3A5F] flex-col justify-between p-12 relative overflow-hidden">
+        {/* Subtle texture */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/3 rounded-full translate-y-1/2 -translate-x-1/2" />
+        </div>
+
+        <div className="relative">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-16">
+            <div className="h-10 w-10 rounded-xl bg-[#F5A623]/20 flex items-center justify-center">
+              <img src="/logo.svg" alt="" className="h-6 w-6 object-contain" />
+            </div>
+            <span
+              className="font-bold text-white text-lg"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Med<span className="text-[#F5A623]">Suite eT</span>
+            </span>
+          </div>
+
+          {/* Headline */}
+          <h2
+            className="text-3xl font-bold text-white leading-snug mb-4"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Pharmacy management<br />built for the front line.
+          </h2>
+          <p className="text-white/50 text-sm mb-10 leading-relaxed">
+            Sign in to your workspace and keep your pharmacy running with confidence.
+          </p>
+
+          {/* Bullet points */}
+          <ul className="space-y-4">
+            {[
+              "Real-time stock tracking across all products",
+              "4-second checkout with barcode scanning",
+              "Staff roles, audit trails, and secure access",
+            ].map((point) => (
+              <li key={point} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#F5A623]/15">
+                  <Check className="h-3 w-3 text-[#F5A623]" />
+                </span>
+                <span className="text-white/70 text-sm leading-relaxed">{point}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Footer tag */}
+        <div className="relative text-white/20 text-xs">
+          © 2026 Medsuite-eT · engineersTech
+        </div>
       </div>
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="relative z-10 w-full max-w-md"
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/")}
-          className="mb-6 text-slate-400 hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Home
-        </Button>
+      {/* ── Right panel: form ──────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col bg-white dark:bg-slate-950">
+        {/* Mobile: navy bar */}
+        <div className="lg:hidden flex items-center gap-3 bg-[#1E3A5F] px-5 py-4">
+          <div className="h-8 w-8 rounded-lg bg-[#F5A623]/20 flex items-center justify-center">
+            <img src="/logo.svg" alt="" className="h-5 w-5 object-contain" />
+          </div>
+          <span
+            className="font-bold text-white"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Med<span className="text-[#F5A623]">Suite eT</span>
+          </span>
+        </div>
 
-        <Card className="border-slate-600 bg-slate-800/90 backdrop-blur-md text-slate-100 shadow-xl">
-          <CardHeader className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">MS</span>
-              </div>
-              <div>
-                <CardTitle className="text-white">Medsuite-eT</CardTitle>
-                <CardDescription className="text-slate-300">Pharmacy Management</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
+        {/* Form area */}
+        <div className="flex-1 flex flex-col justify-center px-6 py-10 sm:px-10 lg:px-16 xl:px-24 max-w-lg lg:max-w-none mx-auto w-full">
+          {/* Back link */}
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mb-8 w-fit transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </button>
 
-          <CardContent>
-            <Tabs value={authMode} onValueChange={(value) => setAuthMode(value as "password" | "pin" | "biometric")} className="w-full">
-              <TabsList
-                className={`grid w-full mb-6 bg-slate-700/80 border border-slate-600 grid-cols-${tabCount}`}
-                style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}
-              >
-                <TabsTrigger
-                  value="password"
-                  className="text-xs sm:text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white"
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}
+          >
+            <h1
+              className="text-2xl font-bold text-slate-900 dark:text-white mb-1"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Sign in to your account
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+              Welcome back. Enter your credentials below.
+            </p>
+
+            {/* Auth mode tabs */}
+            <Tabs
+              value={authMode}
+              onValueChange={(v) => { setAuthMode(v as typeof authMode); setError(""); }}
+              className="w-full"
+            >
+              {tabCount > 1 && (
+                <TabsList
+                  className="mb-6 bg-slate-100 dark:bg-slate-800 rounded-lg p-1"
+                  style={{ display: "grid", gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}
                 >
-                  <Lock className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Password</span>
-                </TabsTrigger>
-                {features.pinAuth && (
                   <TabsTrigger
-                    value="pin"
-                    className="text-xs sm:text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white"
+                    value="password"
+                    className="rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-500 dark:text-slate-400 text-xs"
                   >
-                    🔐
-                    <span className="hidden sm:inline">PIN</span>
+                    <Lock className="h-3.5 w-3.5 mr-1.5" />
+                    Password
                   </TabsTrigger>
-                )}
-                {supportsBiometric && (
-                  <TabsTrigger
-                    value="biometric"
-                    className="text-xs sm:text-sm text-slate-300 data-[state=active]:bg-slate-600 data-[state=active]:text-white"
-                  >
-                    <Fingerprint className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Biometric</span>
-                  </TabsTrigger>
-                )}
-              </TabsList>
+                  {features.pinAuth && (
+                    <TabsTrigger
+                      value="pin"
+                      className="rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-500 dark:text-slate-400 text-xs"
+                    >
+                      🔐 PIN
+                    </TabsTrigger>
+                  )}
+                  {supportsBiometric && (
+                    <TabsTrigger
+                      value="biometric"
+                      className="rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-500 dark:text-slate-400 text-xs"
+                    >
+                      <Fingerprint className="h-3.5 w-3.5 mr-1.5" />
+                      Biometric
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+              )}
 
-              {/* Password Tab */}
-              <TabsContent value="password" className="space-y-4">
-                <form onSubmit={handlePasswordLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-slate-200">
-                      Email
+              {/* ── Password tab ── */}
+              <TabsContent value="password" className="mt-0">
+                <form onSubmit={handlePasswordLogin} className="space-y-5">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Email address
                     </Label>
                     <Input
                       id="email"
                       type="email"
-                      placeholder="admin@eMed.com"
+                      placeholder="you@pharmacy.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="bg-slate-700/80 border-slate-500 text-white placeholder:text-slate-400"
+                      className="h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:border-[#1E3A5F] dark:focus:border-[#F5A623]"
                       disabled={loading}
+                      autoComplete="email"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-slate-200">
-                      Password
-                    </Label>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Password
+                      </Label>
+                      <button
+                        type="button"
+                        className="text-xs text-[#1E3A5F] dark:text-[#F5A623] hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <div className="relative">
                       <Input
                         id="password"
@@ -217,92 +287,69 @@ const EnhancedAuth = () => {
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="bg-slate-700/80 border-slate-500 text-white placeholder:text-slate-400 pr-10"
+                        className="h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:border-[#1E3A5F] dark:focus:border-[#F5A623] pr-10"
                         disabled={loading}
+                        autoComplete="current-password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        tabIndex={-1}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
 
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="bg-red-500/20 border border-red-500/50 text-red-200 text-sm p-3 rounded"
-                    >
-                      {error}
-                    </motion.div>
-                  )}
+                  {error && <ErrorBanner message={error} />}
 
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700"
+                    className="w-full h-10 bg-[#1E3A5F] hover:bg-[#162d4a] text-white font-semibold"
                     disabled={loading}
                   >
                     {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Signing in...
-                      </>
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Signing in…</>
                     ) : (
-                      "Sign In"
+                      "Sign in"
                     )}
                   </Button>
                 </form>
               </TabsContent>
 
-              {/* PIN Tab */}
-              <TabsContent value="pin" className="space-y-4">
-                <p className="text-sm text-slate-400 mb-4">
-                  Enter your 4-digit PIN for quick access
+              {/* ── PIN tab ── */}
+              <TabsContent value="pin" className="mt-0">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+                  Enter your 4-digit PIN for quick access.
                 </p>
-                <form onSubmit={handlePINLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="pin" className="text-slate-200">
-                      PIN
-                    </Label>
-                    <div className="flex gap-2 justify-center mb-6">
-                      {[0, 1, 2, 3].map((index) => (
-                        <div
-                          key={index}
-                          className="h-12 w-12 bg-slate-700/80 border border-slate-500 rounded-lg flex items-center justify-center text-xl font-bold text-white"
-                        >
-                          {pin.length > index ? "•" : ""}
-                        </div>
-                      ))}
-                    </div>
-                    <Input
-                      id="pin"
-                      type="password"
-                      inputMode="numeric"
-                      placeholder="0000"
-                      maxLength={4}
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                      className="bg-slate-700/50 border-slate-600 text-center text-2xl tracking-widest hidden"
-                      disabled={loading}
-                      autoFocus
-                    />
+                <form onSubmit={handlePINLogin} className="space-y-5">
+                  {/* PIN dots display */}
+                  <div className="flex gap-3 justify-center my-2">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className={[
+                          "h-12 w-12 rounded-lg border-2 flex items-center justify-center text-xl font-bold transition-colors",
+                          pin.length > i
+                            ? "border-[#1E3A5F] bg-[#1E3A5F]/5 text-[#1E3A5F] dark:border-[#F5A623] dark:text-[#F5A623]"
+                            : "border-slate-200 dark:border-slate-700",
+                        ].join(" ")}
+                      >
+                        {pin.length > i ? "•" : ""}
+                      </div>
+                    ))}
                   </div>
 
-                  {/* PIN Keypad */}
-                  <div className="grid grid-cols-3 gap-2">
+                  {/* Keypad */}
+                  <div className="grid grid-cols-3 gap-2 max-w-[240px] mx-auto">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                       <button
                         key={num}
                         type="button"
                         onClick={() => pin.length < 4 && setPin(pin + num)}
-                        className="bg-slate-700/80 hover:bg-slate-600 border border-slate-500 rounded-lg py-3 font-semibold text-white transition-colors"
+                        className="h-12 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-white hover:border-[#1E3A5F] dark:hover:border-[#F5A623] transition-colors"
                       >
                         {num}
                       </button>
@@ -310,39 +357,28 @@ const EnhancedAuth = () => {
                     <button
                       type="button"
                       onClick={() => pin.length < 4 && setPin(pin + "0")}
-                      className="col-span-2 bg-slate-700/80 hover:bg-slate-600 border border-slate-500 rounded-lg py-3 font-semibold text-white transition-colors"
+                      className="col-span-2 h-12 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-white hover:border-[#1E3A5F] dark:hover:border-[#F5A623] transition-colors"
                     >
                       0
                     </button>
                     <button
                       type="button"
                       onClick={() => setPin(pin.slice(0, -1))}
-                      className="bg-slate-700/80 hover:bg-slate-600 border border-slate-500 rounded-lg py-3 font-semibold text-white transition-colors"
+                      className="h-12 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-slate-500 hover:text-red-500 transition-colors"
                     >
                       ⌫
                     </button>
                   </div>
 
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="bg-red-500/20 border border-red-500/50 text-red-200 text-sm p-3 rounded"
-                    >
-                      {error}
-                    </motion.div>
-                  )}
+                  {error && <ErrorBanner message={error} />}
 
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700"
+                    className="w-full h-10 bg-[#1E3A5F] hover:bg-[#162d4a] text-white font-semibold"
                     disabled={pin.length !== 4 || loading}
                   >
                     {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Verifying...
-                      </>
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Verifying…</>
                     ) : (
                       "Unlock"
                     )}
@@ -350,99 +386,86 @@ const EnhancedAuth = () => {
                 </form>
               </TabsContent>
 
-              {/* Biometric Tab */}
+              {/* ── Biometric tab ── */}
               {supportsBiometric && (
-              <TabsContent value="biometric" className="space-y-4">
-                <div className="text-center space-y-4">
-                  <div className="space-y-2 text-left">
-                    <Label htmlFor="bio-email" className="text-slate-200">
-                      Admin email
-                    </Label>
-                    <Input
-                      id="bio-email"
-                      type="email"
-                      placeholder="you@pharmacy.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="bg-slate-700/80 border-slate-500 text-white placeholder:text-slate-400"
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="flex justify-center">
-                    <motion.div
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="h-20 w-20 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-full flex items-center justify-center"
+                <TabsContent value="biometric" className="mt-0">
+                  <div className="space-y-5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="bio-email" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Email address
+                      </Label>
+                      <Input
+                        id="bio-email"
+                        type="email"
+                        placeholder="you@pharmacy.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:border-[#1E3A5F]"
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div className="flex justify-center py-4">
+                      <motion.div
+                        animate={{ scale: [1, 1.08, 1] }}
+                        transition={{ duration: 2.2, repeat: Infinity }}
+                        className="h-20 w-20 rounded-full bg-[#1E3A5F]/10 dark:bg-[#1E3A5F]/30 flex items-center justify-center"
+                      >
+                        <Fingerprint className="h-10 w-10 text-[#1E3A5F] dark:text-blue-300" />
+                      </motion.div>
+                    </div>
+
+                    <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                      {biometricEnrolled === false
+                        ? "Enable biometrics in Profile → Biometric Authentication after signing in with your password."
+                        : biometricEnrolled === true
+                          ? "Use fingerprint or Face ID to authenticate."
+                          : "Checking enrollment…"}
+                    </p>
+
+                    {error && <ErrorBanner message={error} />}
+
+                    <Button
+                      onClick={handleBiometricLogin}
+                      className="w-full h-10 bg-[#1E3A5F] hover:bg-[#162d4a] text-white font-semibold"
+                      disabled={loading || !email.trim() || biometricEnrolled === false}
                     >
-                      <Fingerprint className="h-10 w-10 text-white" />
-                    </motion.div>
-                  </div>
-                  <p className="text-slate-400 text-sm">
-                    {biometricEnrolled === false
-                      ? "Enable biometric in Profile → Biometric Authentication after signing in with password."
-                      : biometricEnrolled === true
-                        ? "Use fingerprint or Face ID for this admin account."
-                        : "Checking enrollment…"}
-                  </p>
+                      {loading ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Authenticating…</>
+                      ) : (
+                        <><Fingerprint className="h-4 w-4 mr-2" />Start biometric login</>
+                      )}
+                    </Button>
 
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="bg-red-500/20 border border-red-500/50 text-red-200 text-sm p-3 rounded"
+                    <button
+                      type="button"
+                      className="w-full text-sm text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors py-1"
+                      onClick={() => { setAuthMode("password"); setError(""); }}
                     >
-                      {error}
-                    </motion.div>
-                  )}
-
-                  <Button
-                    onClick={handleBiometricLogin}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700"
-                    disabled={loading || !email.trim() || biometricEnrolled === false}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Authenticating...
-                      </>
-                    ) : (
-                      <>
-                        <Fingerprint className="h-4 w-4 mr-2" />
-                        Start Biometric Auth
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
-                    onClick={() => setAuthMode("password")}
-                  >
-                    Use Password Instead
-                  </Button>
-                </div>
-              </TabsContent>
+                      Use password instead
+                    </button>
+                  </div>
+                </TabsContent>
               )}
             </Tabs>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      <style>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-      `}</style>
+          </motion.div>
+        </div>
+      </div>
     </div>
   );
 };
+
+// ── Error banner ──────────────────────────────────────────────────────────────
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300 text-sm px-4 py-3"
+    >
+      {message}
+    </motion.div>
+  );
+}
 
 export default EnhancedAuth;

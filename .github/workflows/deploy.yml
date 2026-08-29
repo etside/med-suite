@@ -104,9 +104,38 @@ jobs:
           local-dir: ./dist/
           server-dir: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
 
+  seed-sql:
+    name: Generate Seeded Schema SQL
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate password hashes and seed SQL
+        env:
+          ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
+          SUPER_ADMIN_PASS: ${{ secrets.SUPER_ADMIN_PASS }}
+        run: |
+          php -r "
+          \$adminHash = password_hash(getenv('ADMIN_PASS'), PASSWORD_BCRYPT, ['cost' => 12]);
+          \$superHash = password_hash(getenv('SUPER_ADMIN_PASS'), PASSWORD_BCRYPT, ['cost' => 12]);
+          \$sql = file_get_contents('cpanel-schema.sql');
+          \$sql = str_replace('%%ADMIN_PASS_HASH%%', \$adminHash, \$sql);
+          \$sql = str_replace('%%SUPER_ADMIN_PASS_HASH%%', \$superHash, \$sql);
+          file_put_contents('cpanel-schema-seeded.sql', \$sql);
+          echo \"Seeded SQL generated.\\n\";
+          "
+
+      - name: Upload seeded schema
+        uses: actions/upload-artifact@v4
+        with:
+          name: medsuite-cpanel-schema
+          path: cpanel-schema-seeded.sql
+          retention-days: 7
+
   create-zip:
     name: Create Deployment ZIP (cPanel)
-    needs: build
+    needs: [build, seed-sql]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (for PHP backend files)
@@ -117,6 +146,12 @@ jobs:
         with:
           name: dist
           path: dist/
+
+      - name: Download seeded schema SQL
+        uses: actions/download-artifact@v4
+        with:
+          name: medsuite-cpanel-schema
+          path: seeded-schema/
 
       - name: Generate config.php from secrets
         env:
@@ -150,6 +185,9 @@ jobs:
           cp    public/api/import-products-cli.php dist/api/
           cp    public/api/schema.sql         dist/api/
           # config.php was generated above — do not overwrite
+
+      - name: Copy seeded schema SQL into dist/
+        run: cp seeded-schema/cpanel-schema-seeded.sql dist/cpanel-schema-seeded.sql
 
       - name: Create ZIP for cPanel File Manager upload
         run: cd dist && zip -r ../medsuite-deploy.zip .

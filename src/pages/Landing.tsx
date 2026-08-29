@@ -1,609 +1,510 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Check, Zap, BarChart3, ShieldCheck, Users, Clock, Smartphone, Moon, Sun, Pill, TrendingUp, Lock, Languages } from "lucide-react";
+import { Check, ArrowRight, Pill, Zap, BarChart3, ShieldCheck, Users, Smartphone, Languages, TrendingUp, Moon, Sun } from "lucide-react";
 import { LanguageToggleLanding } from "@/components/LanguageToggleLanding";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// ── Animated counter hook ──────────────────────────────────────────────────────
+function useCountUp(target: number, duration = 1800, start = false) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!start) return;
+    let startTime: number | null = null;
+    const step = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      setCount(Math.floor(progress * target));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [target, duration, start]);
+  return count;
+}
+
+// ── Section reveal variants ────────────────────────────────────────────────────
+const sectionVariants = {
+  hidden: { opacity: 0, y: 32 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+};
+
+const staggerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+};
+
+const childVariant = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+};
+
+// ── Feature data ──────────────────────────────────────────────────────────────
+const features = [
+  { icon: Pill, title: "Full Inventory Control", desc: "Batch numbers, expiry alerts, stock levels — updated in real time." },
+  { icon: Zap, title: "4-Second Checkout", desc: "Barcode scan → receipt. Multiple payment methods, zero friction." },
+  { icon: BarChart3, title: "Live Analytics", desc: "Sales trends, top products, and revenue — always current." },
+  { icon: ShieldCheck, title: "Secure by Design", desc: "Biometric auth, audit trails, and role-based access built in." },
+  { icon: Users, title: "Staff & Roles", desc: "Granular permissions. Track performance and manage shifts." },
+  { icon: Smartphone, title: "Offline PWA", desc: "Works without internet. Installs on phone. Syncs automatically." },
+  { icon: Languages, title: "English + বাংলা", desc: "Full bilingual UI — switch language at any time, for any user." },
+  { icon: TrendingUp, title: "Demand Forecasting", desc: "Predictive restocking alerts before you run out." },
+];
+
+// ── Pricing tiers ─────────────────────────────────────────────────────────────
+const pricingPlans = [
+  {
+    name: "Starter",
+    price: "৳0",
+    period: "Free forever",
+    desc: "For solo pharmacists getting started",
+    features: ["Up to 500 products", "POS & sales", "Basic reports", "Mobile PWA"],
+    cta: "Start free",
+    highlight: false,
+  },
+  {
+    name: "Pro",
+    price: "৳1,499",
+    period: "per month",
+    desc: "For growing pharmacies that need more",
+    features: [
+      "Unlimited products",
+      "Advanced analytics",
+      "Staff management",
+      "Customer ledger",
+      "Priority support",
+    ],
+    cta: "Start free trial",
+    highlight: true,
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    period: "contact us",
+    desc: "Multi-branch chains and custom needs",
+    features: [
+      "Everything in Pro",
+      "Multi-location sync",
+      "Custom integrations",
+      "Dedicated manager",
+      "24/7 phone support",
+    ],
+    cta: "Contact sales",
+    highlight: false,
+  },
+];
+
+// ── Terminal stat block ───────────────────────────────────────────────────────
+function TerminalBlock({ started }: { started: boolean }) {
+  const medicines = useCountUp(1200, 1600, started);
+  const accuracy = useCountUp(98, 1400, started);
+  const checkout = useCountUp(4, 800, started);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm font-mono text-sm overflow-hidden shadow-2xl">
+      {/* Title bar */}
+      <div className="flex items-center gap-1.5 px-4 py-3 bg-white/5 border-b border-white/10">
+        <span className="h-3 w-3 rounded-full bg-red-400/60" />
+        <span className="h-3 w-3 rounded-full bg-yellow-400/60" />
+        <span className="h-3 w-3 rounded-full bg-green-400/60" />
+        <span className="ml-3 text-white/30 text-xs">medsuite-et — live stats</span>
+      </div>
+
+      {/* Content */}
+      <div className="p-6 space-y-5 text-white/80">
+        <div className="flex items-baseline justify-between gap-4 border-b border-white/5 pb-4">
+          <span className="text-white/40 text-xs uppercase tracking-widest">medicines tracked</span>
+          <span className="text-3xl font-bold text-white" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            {medicines.toLocaleString()}
+            <span className="text-[#F5A623]">+</span>
+          </span>
+        </div>
+
+        <div className="flex items-baseline justify-between gap-4 border-b border-white/5 pb-4">
+          <span className="text-white/40 text-xs uppercase tracking-widest">stock accuracy</span>
+          <span className="text-3xl font-bold text-white" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            {accuracy}
+            <span className="text-[#F5A623]">%</span>
+          </span>
+        </div>
+
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="text-white/40 text-xs uppercase tracking-widest">checkout time</span>
+          <span className="text-3xl font-bold text-white" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            {checkout}
+            <span className="text-[#F5A623] text-lg">s avg</span>
+          </span>
+        </div>
+
+        <div className="pt-2">
+          <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            System operational · Last synced just now
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 const Landing = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [isDark, setIsDark] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
 
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.2, delayChildren: 0.3 },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8 } },
-  };
-
-  const features = [
-    {
-      icon: Pill,
-      title: "Complete Inventory",
-      description: "Track medications, expiry dates, stock levels, and batch numbers with real-time updates",
-    },
-    {
-      icon: Zap,
-      title: "Smart POS System",
-      description: "Fast checkout with barcode scanning, multiple payment methods, and instant receipts",
-    },
-    {
-      icon: BarChart3,
-      title: "Advanced Analytics",
-      description: "Sales trends, revenue reports, top products, customer insights, and profitability analysis",
-    },
-    {
-      icon: ShieldCheck,
-      title: "Secure & Compliant",
-      description: "Enterprise-grade encryption, biometric auth, audit trails, and HIPAA-ready compliance",
-    },
-    {
-      icon: Users,
-      title: "Multi-user Management",
-      description: "Role-based access control, staff permissions, performance tracking, and attendance logs",
-    },
-    {
-      icon: Smartphone,
-      title: "Mobile PWA",
-      description: "Works offline on phones/tablets, syncs automatically, installable like native app",
-    },
-    {
-      icon: Languages,
-      title: "Bilingual Support",
-      description: "Full support for English and Bangla with local currency and date formats",
-    },
-    {
-      icon: TrendingUp,
-      title: "Business Intelligence",
-      description: "Predictive inventory, demand forecasting, profit margin analysis, and growth metrics",
-    },
-  ];
-
-  const pricingPlans = [
-    {
-      name: "Starter",
-      price: "৳4,999",
-      period: "/month",
-      description: "Perfect for small pharmacies",
-      features: ["Inventory Management", "POS System", "Basic Reports", "Mobile App"],
-      cta: "Get Started",
-      highlighted: false,
-    },
-    {
-      name: "Professional",
-      price: "৳9,999",
-      period: "/month",
-      description: "For growing pharmacies",
-      features: [
-        "Everything in Starter",
-        "Advanced Analytics",
-        "Multi-location Support",
-        "Staff Management",
-        "Priority Support",
-      ],
-      cta: "Start Free Trial",
-      highlighted: true,
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      period: "contact us",
-      description: "For large chains",
-      features: [
-        "Everything in Professional",
-        "Custom Integrations",
-        "Dedicated Account Manager",
-        "White-label Option",
-        "24/7 Phone Support",
-      ],
-      cta: "Contact Sales",
-      highlighted: false,
-    },
-  ];
+  // Hero terminal trigger
+  const heroRef = useRef<HTMLDivElement>(null);
+  const heroInView = useInView(heroRef, { once: true, amount: 0.3 });
 
   return (
     <div className={isDark ? "dark" : ""}>
       <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors">
-        {/* Navigation */}
-        <nav className="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+        {/* ── Navbar ──────────────────────────────────────────── */}
+        <nav className="sticky top-0 z-50 bg-[#1E3A5F] border-b border-white/10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">MS</span>
+              <div className="h-8 w-8 rounded-lg bg-[#F5A623]/20 flex items-center justify-center">
+                <img src="/logo.svg" alt="" className="h-5 w-5 object-contain" />
               </div>
-              <span className="font-bold text-lg">Medsuite-eT</span>
-            </div>
-            
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center gap-8">
-              <button className="text-sm font-medium hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                সকল ফিচার
-              </button>
-              <button className="text-sm font-medium hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                মূল্য নির্ধারণ
-              </button>
-              <button className="text-sm font-medium hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                কেন Medsuite-eT
-              </button>
-              <button className="text-sm font-medium hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                যোগাযোগ
-              </button>
+              <span
+                className="font-bold text-white text-base"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                Med<span className="text-[#F5A623]">Suite eT</span>
+              </span>
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Right */}
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsDark(!isDark)}
-                className="gap-1 px-2"
+                className="text-white/60 hover:text-white hover:bg-white/10 h-8 w-8 p-0"
+                aria-label="Toggle dark mode"
               >
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
               <LanguageToggleLanding />
               <Button
+                variant="ghost"
                 size="sm"
-                variant="outline"
                 onClick={() => navigate("/auth")}
-                className="hidden sm:inline-flex"
+                className="text-white/70 hover:text-white hover:bg-white/10 hidden sm:inline-flex"
               >
-                লগইন
+                {t("nav_login") || "Sign in"}
               </Button>
               <Button
                 size="sm"
                 onClick={() => navigate("/auth")}
-                className="gap-1 px-2 sm:px-3"
+                className="bg-[#F5A623] hover:bg-[#e09510] text-[#1E3A5F] font-semibold"
               >
-                <span className="hidden sm:inline">শুরু করুন</span>
-                <span className="sm:hidden">শুরু</span>
-                <ArrowRight className="h-4 w-4" />
+                {t("nav_get_started") || "Get started"}
+                <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </div>
           </div>
         </nav>
 
-        {/* Hero Section */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-32">
-          {/* Animated background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800" />
-          <div className="absolute top-20 right-10 w-96 h-96 bg-emerald-200 dark:bg-emerald-900/30 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
-          <div className="absolute bottom-20 left-10 w-96 h-96 bg-cyan-200 dark:bg-cyan-900/30 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
-
-          <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-6"
-            >
-              <Badge className="mx-auto bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700">
-                🚀 Trusted by 500+ pharmacies across Bangladesh
-              </Badge>
-
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight">
-                Pharmacy Management{" "}
-                <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
-                  Simplified for Bangladesh
-                </span>
-              </h1>
-
-              <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed">
-                Medsuite-eT is a complete pharmacy management platform trusted by 500+ pharmacies. Manage inventory, POS, analytics, and staff—all in one place. PWA-based, works offline, bilingual support.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                <Button size="lg" onClick={() => navigate("/auth")} className="group">
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-                <Button size="lg" variant="outline" className="gap-2">
-                  View Live Demo →
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 pt-12 mt-8 border-t border-slate-200 dark:border-slate-800">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">500+</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Active Pharmacies</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">50K+</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Daily Transactions</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">৳10M+</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Sales Processed</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">99.9%</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Uptime SLA</div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap justify-center gap-3 pt-8 mt-4">
-                <Badge className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700">
-                  ✓ English & Bangla
-                </Badge>
-                <Badge className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700">
-                  ✓ Works Offline
-                </Badge>
-                <Badge className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700">
-                  ✓ Mobile PWA
-                </Badge>
-                <Badge className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700">
-                  ✓ Enterprise Security
-                </Badge>
-              </div>
-
+        {/* ── Hero ────────────────────────────────────────────── */}
+        <section
+          ref={heroRef}
+          className="bg-[#1E3A5F] min-h-[88vh] flex items-center py-20"
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              {/* Left: headline */}
               <motion.div
-                animate={{ y: [0, 10, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="text-sm text-slate-600 dark:text-slate-400 pt-8"
+                variants={sectionVariants}
+                initial="hidden"
+                animate={heroInView ? "visible" : "hidden"}
+                className="space-y-6"
               >
-                ↓ Scroll to explore features
-              </motion.div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="py-24 bg-slate-50 dark:bg-slate-900/50">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
-              <p className="text-xl text-slate-600 dark:text-slate-400">
-                Everything you need to manage your pharmacy efficiently
-              </p>
-            </motion.div>
-
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
-            >
-              {features.map((feature, index) => {
-                const Icon = feature.icon;
-                return (
-                  <motion.div key={index} variants={itemVariants}>
-                    <Card className="h-full hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-lg transition-all">
-                      <CardHeader>
-                        <div className="h-12 w-12 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-lg flex items-center justify-center mb-4">
-                          <Icon className="h-6 w-6 text-white" />
-                        </div>
-                        <CardTitle>{feature.title}</CardTitle>
-                        <CardDescription>{feature.description}</CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Why Medsuite-eT Section */}
-        <section className="py-24">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl font-bold mb-4">Why Medsuite-eT?</h2>
-              <p className="text-xl text-slate-600 dark:text-slate-400">
-                Built specifically for Bangladesh pharmacies with features you actually need
-              </p>
-            </motion.div>
-
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-8"
-            >
-              <motion.div variants={itemVariants} className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="h-12 w-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Languages className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2">Bilingual Support</h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Complete English and Bangla interface. Switch anytime. All reports in both languages.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="h-12 w-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Smartphone className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2">Offline First PWA</h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Works without internet. Installs like native app. Auto-syncs when online.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="h-12 w-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Lock className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2">Bank-Grade Security</h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      AES-256 encryption, biometric auth, audit trails, role-based access control.
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="h-12 w-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <TrendingUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2">Smart Analytics</h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Real-time sales trends, inventory forecasting, profit analysis, customer insights.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="h-12 w-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2">Multi-User Management</h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Role-based access, staff performance tracking, attendance, and notifications.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="h-12 w-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Pill className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2">Complete Inventory</h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Track batches, expiry dates, suppliers, stock levels, and auto-reorder alerts.
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Pricing Section */}
-        <section className="py-24">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
-              <p className="text-xl text-slate-600 dark:text-slate-400">
-                Choose the plan that fits your pharmacy size
-              </p>
-            </motion.div>
-
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-8"
-            >
-              {pricingPlans.map((plan, index) => (
-                <motion.div key={index} variants={itemVariants}>
-                  <Card
-                    className={`h-full flex flex-col ${
-                      plan.highlighted
-                        ? "ring-2 ring-emerald-500 dark:ring-emerald-400 scale-105 md:scale-110"
-                        : ""
-                    }`}
+                <p className="text-[#F5A623] text-xs font-semibold uppercase tracking-widest">
+                  Pharmacy Management · Made for Bangladesh
+                </p>
+                <h1
+                  className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1]"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  Your pharmacy,
+                  <br />
+                  <span className="text-[#F5A623]">fully in control.</span>
+                </h1>
+                <p className="text-gray-300 text-lg leading-relaxed max-w-lg" style={{ fontFamily: "Inter, sans-serif" }}>
+                  Medsuite eT handles your stock, sales, and staff — so you can focus on the patient in front of you.
+                </p>
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <Button
+                    size="lg"
+                    onClick={() => navigate("/auth")}
+                    className="bg-[#F5A623] hover:bg-[#e09510] text-[#1E3A5F] font-bold px-6"
                   >
-                    <CardHeader>
-                      {plan.highlighted && (
-                        <Badge className="w-fit bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
-                          Most Popular
-                        </Badge>
-                      )}
-                      <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                      <CardDescription>{plan.description}</CardDescription>
-                      <div className="mt-4">
-                        <span className="text-4xl font-bold">{plan.price}</span>
-                        <span className="text-slate-600 dark:text-slate-400 ml-2">{plan.period}</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 space-y-4">
-                      <div className="space-y-3">
-                        {plan.features.map((feature, i) => (
-                          <div key={i} className="flex items-start gap-3">
-                            <Check className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                            <span className="text-sm">{feature}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <Button
-                        className="w-full mt-6"
-                        variant={plan.highlighted ? "default" : "outline"}
-                      >
-                        {plan.cta}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Theme & Customization Section */}
-        <section className="py-24 bg-gradient-to-br from-slate-50 to-emerald-50 dark:from-slate-900/50 dark:to-emerald-900/20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl font-bold mb-4">Beautiful Themes Built-in</h2>
-              <p className="text-xl text-slate-600 dark:text-slate-400">
-                Personalize your pharmacy dashboard with multiple color themes or create your brand colors
-              </p>
-            </motion.div>
-
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center"
-            >
-              <motion.div variants={itemVariants} className="space-y-6">
-                <div>
-                  <h3 className="text-2xl font-bold mb-4">8+ Pre-built Color Themes</h3>
-                  <p className="text-slate-600 dark:text-slate-400 mb-6">
-                    Choose from carefully designed color combinations that work perfectly in light and dark modes. Each theme includes complementary primary, secondary, and accent colors optimized for pharmacy workflows.
-                  </p>
+                    {t("hero_cta_trial") || "Start free trial"}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => navigate("/auth")}
+                    className="border-white/30 text-white hover:bg-white/10 hover:border-white/60"
+                  >
+                    {t("hero_cta_demo") || "See a demo"}
+                  </Button>
                 </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm">Teal + Cyan + Amber</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm">Blue + Indigo + Cyan</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm">Violet + Pink + Orange</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm">Rose + Coral + Amber</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                  <h4 className="font-bold mb-3">Custom Branding</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Set default theme for all staff, but allow each person to choose their preference. Perfect for consistency or personal comfort.
-                  </p>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-white/50">
+                  <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#F5A623]" /> No credit card</span>
+                  <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#F5A623]" /> Works offline</span>
+                  <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[#F5A623]" /> English &amp; বাংলা</span>
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border-2 border-emerald-500/30 hover:border-emerald-500 cursor-pointer transition-all">
-                  <div className="h-12 mb-2 bg-gradient-to-r from-emerald-500 to-cyan-600 rounded-lg" />
-                  <div className="text-xs font-medium">Emerald</div>
-                </div>
-                <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border-2 border-blue-500/30 hover:border-blue-500 cursor-pointer transition-all">
-                  <div className="h-12 mb-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg" />
-                  <div className="text-xs font-medium">Azure</div>
-                </div>
-                <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border-2 border-violet-500/30 hover:border-violet-500 cursor-pointer transition-all">
-                  <div className="h-12 mb-2 bg-gradient-to-r from-violet-500 to-pink-600 rounded-lg" />
-                  <div className="text-xs font-medium">Violet</div>
-                </div>
-                <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border-2 border-rose-500/30 hover:border-rose-500 cursor-pointer transition-all">
-                  <div className="h-12 mb-2 bg-gradient-to-r from-rose-500 to-orange-600 rounded-lg" />
-                  <div className="text-xs font-medium">Rose</div>
-                </div>
-              </motion.div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-24 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="space-y-6"
-            >
-              <h2 className="text-4xl font-bold">Ready to Transform Your Pharmacy?</h2>
-              <p className="text-xl text-emerald-50">
-                Join hundreds of pharmacies using Medsuite-eT to streamline operations
-              </p>
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={() => navigate("/auth")}
-                className="group"
+              {/* Right: terminal */}
+              <motion.div
+                variants={{ hidden: { opacity: 0, x: 32 }, visible: { opacity: 1, x: 0, transition: { duration: 0.7, delay: 0.2 } } }}
+                initial="hidden"
+                animate={heroInView ? "visible" : "hidden"}
               >
-                Start Your Free Trial
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </motion.div>
+                <TerminalBlock started={heroInView} />
+              </motion.div>
+            </div>
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t border-slate-200 dark:border-slate-800 py-12 bg-slate-50 dark:bg-slate-900/50">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-600 dark:text-slate-400">
-            <p>© 2026 Medsuite-eT — All rights reserved. Made with 💙 by engineersTech</p>
+        {/* ── Features ────────────────────────────────────────── */}
+        <FeaturesSection />
+
+        {/* ── Pricing ─────────────────────────────────────────── */}
+        <PricingSection navigate={navigate} t={t} />
+
+        {/* ── CTA banner ──────────────────────────────────────── */}
+        <CtaSection navigate={navigate} t={t} />
+
+        {/* ── Footer ──────────────────────────────────────────── */}
+        <footer className="bg-[#1E3A5F] border-t border-white/10 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-[#F5A623]/20 flex items-center justify-center">
+                  <img src="/logo.svg" alt="" className="h-5 w-5 object-contain" />
+                </div>
+                <div>
+                  <span
+                    className="font-bold text-white text-sm block"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Med<span className="text-[#F5A623]">Suite eT</span>
+                  </span>
+                  <span className="text-white/40 text-xs">Pharmacy management, simplified</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-6 text-sm text-white/40">
+                <button className="hover:text-white transition-colors">{t("nav_features") || "Features"}</button>
+                <button className="hover:text-white transition-colors">{t("nav_pricing") || "Pricing"}</button>
+                <button className="hover:text-white transition-colors">{t("nav_contact") || "Contact"}</button>
+              </div>
+            </div>
+            <div className="mt-8 pt-6 border-t border-white/10 text-center text-xs text-white/30">
+              © 2026 Medsuite-eT — All rights reserved. Made with 💙 by engineersTech
+            </div>
           </div>
         </footer>
       </div>
-
-      <style>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-      `}</style>
     </div>
   );
 };
+
+// ── Features section ──────────────────────────────────────────────────────────
+function FeaturesSection() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+
+  return (
+    <section ref={ref} className="bg-white dark:bg-slate-950 py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <motion.div
+          variants={sectionVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="mb-12"
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#F5A623] mb-3">
+            What you get
+          </p>
+          <h2
+            className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Everything a modern pharmacy needs
+          </h2>
+        </motion.div>
+
+        <motion.div
+          variants={staggerVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+        >
+          {features.map((f) => (
+            <motion.div
+              key={f.title}
+              variants={childVariant}
+              className="group rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 transition-all duration-200 hover:border-t-2 hover:border-t-[#F5A623]"
+            >
+              <div className="h-9 w-9 rounded-md bg-[#1E3A5F]/10 dark:bg-[#1E3A5F]/30 flex items-center justify-center mb-4">
+                <f.icon className="h-4 w-4 text-[#1E3A5F] dark:text-blue-300" />
+              </div>
+              <h3
+                className="font-bold text-slate-900 dark:text-white mb-1"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                {f.title}
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{f.desc}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ── Pricing section ───────────────────────────────────────────────────────────
+function PricingSection({ navigate, t }: { navigate: (path: string) => void; t: (k: string) => string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+
+  return (
+    <section ref={ref} className="bg-slate-50 dark:bg-slate-900/50 py-24">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <motion.div
+          variants={sectionVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="mb-12"
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#F5A623] mb-3">
+            Pricing
+          </p>
+          <h2
+            className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Simple, transparent plans
+          </h2>
+          <p className="mt-2 text-slate-500 dark:text-slate-400 text-base">
+            Start free. Upgrade as you grow.
+          </p>
+        </motion.div>
+
+        <motion.div
+          variants={staggerVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start"
+        >
+          {pricingPlans.map((plan) => (
+            <motion.div
+              key={plan.name}
+              variants={childVariant}
+              className={[
+                "rounded-xl border bg-white dark:bg-slate-900 p-6 flex flex-col gap-5",
+                plan.highlight
+                  ? "border-[#1E3A5F] dark:border-[#F5A623]/60 ring-2 ring-[#1E3A5F]/20 dark:ring-[#F5A623]/10"
+                  : "border-slate-200 dark:border-slate-800",
+              ].join(" ")}
+            >
+              {plan.highlight && (
+                <span className="self-start text-[10px] font-semibold uppercase tracking-widest bg-[#F5A623]/15 text-[#c47e0a] dark:text-[#F5A623] rounded px-2 py-0.5">
+                  Most popular
+                </span>
+              )}
+              <div>
+                <h3
+                  className="text-xl font-bold text-slate-900 dark:text-white"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  {plan.name}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{plan.desc}</p>
+              </div>
+              <div>
+                <span
+                  className="text-4xl font-bold text-slate-900 dark:text-white"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  {plan.price}
+                </span>
+                <span className="text-sm text-slate-500 dark:text-slate-400 ml-2">{plan.period}</span>
+              </div>
+              <ul className="space-y-2.5 flex-1">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
+                    <Check className="h-4 w-4 text-[#1E3A5F] dark:text-[#F5A623] shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Button
+                onClick={() => navigate("/auth")}
+                className={
+                  plan.highlight
+                    ? "bg-[#1E3A5F] hover:bg-[#162d4a] text-white w-full"
+                    : "w-full"
+                }
+                variant={plan.highlight ? "default" : "outline"}
+              >
+                {plan.cta}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ── CTA section ───────────────────────────────────────────────────────────────
+function CtaSection({ navigate, t }: { navigate: (path: string) => void; t: (k: string) => string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.4 });
+
+  return (
+    <section ref={ref} className="bg-[#1E3A5F] py-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+        <motion.div
+          variants={sectionVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="space-y-6"
+        >
+          <h2
+            className="text-3xl sm:text-4xl font-bold text-white"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Ready to take control of your pharmacy?
+          </h2>
+          <p className="text-gray-300 text-lg">
+            Join pharmacies across Bangladesh running on Medsuite eT.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button
+              size="lg"
+              onClick={() => navigate("/auth")}
+              className="bg-[#F5A623] hover:bg-[#e09510] text-[#1E3A5F] font-bold px-8"
+            >
+              {t("hero_cta_trial") || "Start free trial"}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
 
 export default Landing;

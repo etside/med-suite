@@ -212,3 +212,64 @@ INSERT INTO products (id, name, name_bn, category, price, stock, description)
 SELECT UUID(), 'ECG Test', 'ইসিজি টেস্ট', 'service', 500.00, 9999,
        'Electrocardiogram test service' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = 'ECG Test' LIMIT 1);
+
+
+-- ============================================================
+--  Admin Seed Data
+--  Passwords are injected by the CI deploy workflow.
+--  Placeholders %%ADMIN_PASS_HASH%% and %%SUPER_ADMIN_PASS_HASH%%
+--  are replaced with real bcrypt hashes before this file is
+--  executed against the database.
+-- ============================================================
+
+START TRANSACTION;
+
+-- ── Admin user: abdullahalmamunshaikh22@gmail.com ────────────
+
+-- 1. Insert into users (idempotent)
+INSERT INTO users (id, email, password_hash, created_at)
+SELECT UUID(), 'abdullahalmamunshaikh22@gmail.com', '%%ADMIN_PASS_HASH%%', NOW()
+WHERE NOT EXISTS (
+  SELECT 1 FROM users WHERE email = 'abdullahalmamunshaikh22@gmail.com'
+);
+
+-- 2. Insert profile (idempotent)
+INSERT INTO profiles (id, user_id, full_name, approval_status, created_at, updated_at)
+SELECT UUID(), u.id, 'Abdullah Al Mamun Shaikh', 'approved', NOW(), NOW()
+FROM users u
+WHERE u.email = 'abdullahalmamunshaikh22@gmail.com'
+  AND NOT EXISTS (
+    SELECT 1 FROM profiles p WHERE p.user_id = u.id
+  );
+
+-- 3. Assign admin role (idempotent via UNIQUE KEY uq_user_role)
+INSERT IGNORE INTO user_roles (id, user_id, role)
+SELECT UUID(), u.id, 'admin'
+FROM users u
+WHERE u.email = 'abdullahalmamunshaikh22@gmail.com';
+
+-- ── Super admin user: kptjms991@gmail.com ───────────────────
+
+-- 1. Insert into users (idempotent)
+INSERT INTO users (id, email, password_hash, created_at)
+SELECT UUID(), 'kptjms991@gmail.com', '%%SUPER_ADMIN_PASS_HASH%%', NOW()
+WHERE NOT EXISTS (
+  SELECT 1 FROM users WHERE email = 'kptjms991@gmail.com'
+);
+
+-- 2. Insert profile (idempotent)
+INSERT INTO profiles (id, user_id, full_name, approval_status, created_at, updated_at)
+SELECT UUID(), u.id, 'Super Admin', 'approved', NOW(), NOW()
+FROM users u
+WHERE u.email = 'kptjms991@gmail.com'
+  AND NOT EXISTS (
+    SELECT 1 FROM profiles p WHERE p.user_id = u.id
+  );
+
+-- 3. Assign super_admin role (idempotent via UNIQUE KEY uq_user_role)
+INSERT IGNORE INTO user_roles (id, user_id, role)
+SELECT UUID(), u.id, 'super_admin'
+FROM users u
+WHERE u.email = 'kptjms991@gmail.com';
+
+COMMIT;

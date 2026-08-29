@@ -1,3 +1,19 @@
+/* ─── Medsuite-eT Design Tokens ───────────────────────────────────────────────
+   Palette:
+     Indigo Navy    #1E3A5F  — deep clinical authority (primary)
+     Saffron        #F5A623  — warm urgency, South-Asian pharmacy accent
+     Slate White    #F8FAFC  — near-white background (not warm cream)
+     Ink            #0F1E2E  — deep text
+     Muted Teal     #2DD4BF  — success / healthy stock indicator
+     Alert Red      #EF4444  — low stock / danger
+   Typography:
+     Display: DM Sans (400/600/700) — geometric, authoritative
+     Body: Inter (400/500) — readable at small sizes
+     Mono: JetBrains Mono — data/numbers in tables
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
 .safe-area-pb {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
@@ -8,76 +24,97 @@
 
 @layer base {
   :root {
-    --background: 160 33% 98%;
-    --foreground: 166 50% 10%;
+    /* ── Core surfaces ── */
+    --background: 210 40% 98%;          /* #F8FAFC — slate-white */
+    --foreground: 213 50% 12%;          /* #0F1E2E — ink */
     --card: 0 0% 100%;
-    --card-foreground: 166 50% 10%;
+    --card-foreground: 213 50% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 166 50% 10%;
-    --primary: 174 84% 32%;
-    --primary-foreground: 160 33% 98%;
-    --secondary: 160 20% 94%;
-    --secondary-foreground: 166 50% 10%;
-    --muted: 160 15% 93%;
-    --muted-foreground: 166 10% 45%;
-    --accent: 160 20% 94%;
-    --accent-foreground: 166 50% 10%;
+    --popover-foreground: 213 50% 12%;
+
+    /* ── Brand ── */
+    --primary: 213 52% 24%;             /* #1E3A5F — indigo navy */
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 213 52% 32%;       /* hover state */
+
+    /* ── Accent (saffron) ── */
+    --accent: 37 91% 55%;              /* #F5A623 — saffron */
+    --accent-foreground: 213 50% 12%;
+
+    /* ── Muted / secondary ── */
+    --secondary: 213 30% 94%;
+    --secondary-foreground: 213 50% 12%;
+    --muted: 213 25% 93%;
+    --muted-foreground: 213 20% 48%;
+
+    /* ── Semantic ── */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 160 15% 88%;
-    --input: 160 15% 88%;
-    --ring: 174 84% 32%;
-    --radius: 0.625rem;
-    --sidebar-background: 160 25% 97%;
-    --sidebar-foreground: 166 40% 20%;
-    --sidebar-primary: 174 84% 32%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 20% 93%;
-    --sidebar-accent-foreground: 166 40% 20%;
-    --sidebar-border: 160 15% 90%;
-    --sidebar-ring: 174 84% 32%;
-    --success: 142 76% 36%;
+    --success: 171 77% 40%;             /* muted teal */
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --info: 199 89% 48%;
+    --warning: 37 91% 55%;
+    --warning-foreground: 213 50% 12%;
+    --info: 213 52% 45%;
     --info-foreground: 0 0% 100%;
+
+    /* ── Chrome ── */
+    --border: 213 20% 88%;
+    --input: 213 20% 88%;
+    --ring: 213 52% 24%;
+    --radius: 0.5rem;
+
+    /* ── Sidebar ── */
+    --sidebar-background: 213 52% 14%;  /* darkened navy */
+    --sidebar-foreground: 210 30% 85%;
+    --sidebar-primary: 37 91% 55%;      /* saffron active */
+    --sidebar-primary-foreground: 213 50% 12%;
+    --sidebar-accent: 213 52% 20%;
+    --sidebar-accent-foreground: 210 30% 90%;
+    --sidebar-border: 213 52% 20%;
+    --sidebar-ring: 37 91% 55%;
   }
 
   .dark {
-    --background: 166 50% 5%;
-    --foreground: 160 20% 95%;
-    --card: 166 45% 8%;
-    --card-foreground: 160 20% 95%;
-    --popover: 166 45% 8%;
-    --popover-foreground: 160 20% 95%;
-    --primary: 174 72% 40%;
-    --primary-foreground: 166 50% 5%;
-    --secondary: 166 30% 14%;
-    --secondary-foreground: 160 20% 95%;
-    --muted: 166 30% 14%;
-    --muted-foreground: 160 10% 55%;
-    --accent: 166 30% 14%;
-    --accent-foreground: 160 20% 95%;
-    --destructive: 0 62% 30%;
+    --background: 213 45% 7%;
+    --foreground: 210 30% 92%;
+    --card: 213 42% 10%;
+    --card-foreground: 210 30% 92%;
+    --popover: 213 42% 10%;
+    --popover-foreground: 210 30% 92%;
+
+    --primary: 37 91% 55%;              /* saffron becomes primary in dark */
+    --primary-foreground: 213 50% 8%;
+    --primary-light: 37 91% 65%;
+
+    --accent: 213 52% 45%;
+    --accent-foreground: 210 30% 92%;
+
+    --secondary: 213 35% 16%;
+    --secondary-foreground: 210 30% 92%;
+    --muted: 213 35% 14%;
+    --muted-foreground: 210 15% 55%;
+
+    --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 98%;
-    --border: 166 30% 16%;
-    --input: 166 30% 16%;
-    --ring: 174 72% 40%;
-    --sidebar-background: 166 50% 6%;
-    --sidebar-foreground: 160 20% 90%;
-    --sidebar-primary: 174 72% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 166 30% 12%;
-    --sidebar-accent-foreground: 160 20% 90%;
-    --sidebar-border: 166 30% 14%;
-    --sidebar-ring: 174 72% 40%;
-    --success: 142 70% 30%;
+    --success: 171 70% 35%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 80% 45%;
-    --warning-foreground: 0 0% 100%;
-    --info: 199 80% 40%;
+    --warning: 37 85% 50%;
+    --warning-foreground: 213 50% 8%;
+    --info: 213 60% 55%;
     --info-foreground: 0 0% 100%;
+
+    --border: 213 35% 18%;
+    --input: 213 35% 18%;
+    --ring: 37 91% 55%;
+
+    --sidebar-background: 213 50% 6%;
+    --sidebar-foreground: 210 25% 80%;
+    --sidebar-primary: 37 91% 55%;
+    --sidebar-primary-foreground: 213 50% 6%;
+    --sidebar-accent: 213 45% 12%;
+    --sidebar-accent-foreground: 210 25% 85%;
+    --sidebar-border: 213 40% 12%;
+    --sidebar-ring: 37 91% 55%;
   }
 }
 
@@ -90,18 +127,26 @@
     overflow-x: hidden;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased min-h-screen overflow-x-hidden;
+    @apply bg-background text-foreground antialiased min-h-screen overflow-x-hidden;
+    font-family: 'Inter', 'DM Sans', system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .font-display {
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+  .font-mono, code, pre, [data-slot="table"] td, [data-slot="table"] th {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
   }
   #root {
     @apply min-h-screen w-full;
   }
   @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
-    *,
-    *::before,
-    *::after {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
@@ -110,13 +155,55 @@
 }
 
 @layer utilities {
+  /* ── Interactive card lift ── */
   .card-interactive {
-    @apply transition-all duration-200 ease-out;
+    @apply transition-all duration-200 ease-out cursor-pointer;
   }
   .card-interactive:hover {
-    @apply border-primary/40 shadow-md shadow-primary/5 -translate-y-0.5;
+    @apply -translate-y-0.5 shadow-md;
+    box-shadow: 0 4px 16px -2px hsl(var(--primary) / 0.12);
   }
   .card-interactive:active {
     @apply translate-y-0 shadow-sm;
+  }
+
+  /* ── Stat card left-border pulse (signature element) ──
+     A 3px strip that pulses on alert states, like the
+     indicator light on a medicine dispensing cabinet.   */
+  .stat-card-ok {
+    border-left: 3px solid hsl(var(--success));
+  }
+  .stat-card-warn {
+    border-left: 3px solid hsl(var(--warning));
+    animation: borderPulse 2.4s ease-in-out infinite;
+  }
+  .stat-card-alert {
+    border-left: 3px solid hsl(var(--destructive));
+    animation: borderPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes borderPulse {
+    0%, 100% { border-left-color: hsl(var(--destructive)); }
+    50%       { border-left-color: hsl(var(--destructive) / 0.35); }
+  }
+  .stat-card-warn { animation-name: warnPulse; }
+  @keyframes warnPulse {
+    0%, 100% { border-left-color: hsl(var(--warning)); }
+    50%       { border-left-color: hsl(var(--warning) / 0.35); }
+  }
+
+  /* ── Saffron accent button/chip ── */
+  .btn-saffron {
+    @apply bg-[hsl(37_91%_55%)] text-[hsl(213_50%_12%)] font-semibold hover:bg-[hsl(37_91%_48%)] transition-colors;
+  }
+
+  /* ── Sidebar dark navy with saffron active ── */
+  .sidebar-dark {
+    background: hsl(var(--sidebar-background));
+    color: hsl(var(--sidebar-foreground));
+  }
+
+  /* ── Focus visible ring (accessibility) ── */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
 }
