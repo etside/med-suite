@@ -18,6 +18,13 @@ CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(36) NOT NULL PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
+  -- WebAuthn / biometric columns
+  biometric_enrolled     TINYINT(1)   NOT NULL DEFAULT 0,
+  biometric_data         JSON         NULL,
+  webauthn_challenge     VARCHAR(128) NULL,
+  webauthn_challenge_expires DATETIME NULL,
+  -- PIN auth
+  auth_pin_hash          VARCHAR(255) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_email (email)
 ) ENGINE=InnoDB;
