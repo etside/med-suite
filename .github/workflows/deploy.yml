@@ -2,7 +2,7 @@ name: Build & Deploy Medsuite-eT
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 env:
@@ -27,6 +27,7 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: /api/index.php
+          VITE_APP_URL: https://med-suite.shop
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -38,7 +39,7 @@ jobs:
     name: Deploy to Netlify
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.inputs.target == 'netlify'
+    if: github.event.inputs.target == 'netlify'
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -59,41 +60,13 @@ jobs:
     name: Deploy to cPanel via FTP
     needs: build
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'cpanel'
+    if: github.event.inputs.target == 'cpanel-ftp'
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
-
-      - name: Copy .htaccess to dist
-        run: |
-          cat > dist/.htaccess << 'EOF'
-          <IfModule mod_rewrite.c>
-            RewriteEngine On
-            RewriteBase /
-            RewriteRule ^index\.html$ - [L]
-            RewriteCond %{REQUEST_FILENAME} !-f
-            RewriteCond %{REQUEST_FILENAME} !-d
-            RewriteRule . /index.html [L]
-          </IfModule>
-
-          <IfModule mod_headers.c>
-            Header set X-Content-Type-Options "nosniff"
-            Header set X-Frame-Options "SAMEORIGIN"
-            Header set X-XSS-Protection "1; mode=block"
-            Header set Referrer-Policy "strict-origin-when-cross-origin"
-          </IfModule>
-
-          <IfModule mod_expires.c>
-            ExpiresActive On
-            ExpiresByType text/css "access plus 1 year"
-            ExpiresByType application/javascript "access plus 1 year"
-            ExpiresByType image/png "access plus 1 year"
-            ExpiresByType image/svg+xml "access plus 1 year"
-          </IfModule>
-          EOF
 
       - name: FTP Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -123,7 +96,7 @@ jobs:
           \$sql = str_replace('%%ADMIN_PASS_HASH%%', \$adminHash, \$sql);
           \$sql = str_replace('%%SUPER_ADMIN_PASS_HASH%%', \$superHash, \$sql);
           file_put_contents('cpanel-schema-seeded.sql', \$sql);
-          echo \"Seeded SQL generated.\\n\";
+          echo \"Seeded SQL generated.\n\";
           "
 
       - name: Upload seeded schema
@@ -161,33 +134,53 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           mkdir -p dist/api
-          cat > dist/api/config.php << PHPEOF
-          <?php
-          return [
-              'db_host'    => 'localhost',
-              'db_port'    => '3306',
-              'db_name'    => '${DB_NAME}',
-              'db_user'    => '${DB_USER}',
-              'db_pass'    => '${DB_PASS}',
-              'jwt_secret' => '${JWT_SECRET}',
-          ];
-          PHPEOF
+          # Write config.php via PHP to avoid any shell heredoc indentation issues
+          php -r "
+          \$cfg = '<?php' . PHP_EOL
+            . 'return [' . PHP_EOL
+            . \"    'db_host'    => 'localhost',\" . PHP_EOL
+            . \"    'db_port'    => '3306',\" . PHP_EOL
+            . \"    'db_name'    => '\" . getenv('DB_NAME') . \"',\" . PHP_EOL
+            . \"    'db_user'    => '\" . getenv('DB_USER') . \"',\" . PHP_EOL
+            . \"    'db_pass'    => '\" . addslashes(getenv('DB_PASS')) . \"',\" . PHP_EOL
+            . \"    'jwt_secret' => '\" . addslashes(getenv('JWT_SECRET')) . \"',\" . PHP_EOL
+            . '];' . PHP_EOL;
+          file_put_contents('dist/api/config.php', \$cfg);
+          echo \"config.php generated.\n\";
+          "
 
       - name: Copy PHP API backend into dist/api/
         run: |
           mkdir -p dist/api
-          cp -r public/api/inc  dist/api/
-          cp -r public/api/migrations dist/api/
+          cp -r public/api/inc         dist/api/
+          cp -r public/api/migrations  dist/api/
           cp    public/api/index.php          dist/api/
           cp    public/api/pg-api.php         dist/api/
           cp    public/api/seed-admin.php     dist/api/
           cp    public/api/seed-products.php  dist/api/
           cp    public/api/import-products-cli.php dist/api/
           cp    public/api/schema.sql         dist/api/
-          # config.php was generated above — do not overwrite
+          # NOTE: config.php was generated above — do NOT overwrite it
 
       - name: Copy seeded schema SQL into dist/
         run: cp seeded-schema/cpanel-schema-seeded.sql dist/cpanel-schema-seeded.sql
+
+      - name: Verify critical files exist
+        run: |
+          echo "=== ZIP contents preview ==="
+          ls -la dist/
+          ls -la dist/api/
+          echo "--- .htaccess ---"
+          cat dist/.htaccess
+          echo "--- config.php (redacted) ---"
+          php -r "
+          \$c = require 'dist/api/config.php';
+          echo 'db_host: ' . \$c['db_host'] . PHP_EOL;
+          echo 'db_name: ' . \$c['db_name'] . PHP_EOL;
+          echo 'db_user: ' . \$c['db_user'] . PHP_EOL;
+          echo 'db_pass: [REDACTED]' . PHP_EOL;
+          echo 'jwt_secret: [REDACTED]' . PHP_EOL;
+          "
 
       - name: Create ZIP for cPanel File Manager upload
         run: cd dist && zip -r ../medsuite-deploy.zip .

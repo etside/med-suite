@@ -1,18 +1,25 @@
 {
   "id": "/",
-  "name": "Medsuite-eT - Pharmacy Management",
-  "short_name": "Medsuite-eT",
-  "description": "Pharmacy management SaaS for Bangladesh — inventory, sales, orders, and mobile payments.",
+  "name": "Medsuite-eT — Pharmacy Management",
+  "short_name": "MedSuite",
+  "description": "Complete pharmacy management for Bangladesh — inventory, POS, orders, and staff in one place.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f7faf9",
-  "theme_color": "#0f766e",
+  "background_color": "#F8FAFC",
+  "theme_color": "#1E3A5F",
   "orientation": "any",
   "categories": ["business", "medical", "productivity"],
   "icons": [
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    { "src": "/icons/icon-72.png",  "sizes": "72x72",   "type": "image/png" },
+    { "src": "/icons/icon-96.png",  "sizes": "96x96",   "type": "image/png" },
+    { "src": "/icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "/icons/icon-144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "/icons/icon-152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "prefer_related_applications": false
 }

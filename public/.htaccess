@@ -1,15 +1,26 @@
+# ── Force HTTPS ─────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Redirect HTTP → HTTPS
+  RewriteCond %{HTTPS} off
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
   # ── PHP API passthrough ──────────────────────────────────
-  # Requests to /api/* go to api/index.php (PHP handles routing internally)
+  # /api/* → api/index.php (PHP handles action routing via ?action=)
   RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^api/(.*)$ api/index.php [QSA,L]
 
+  # Direct access to api/index.php (e.g. ?action=health) — allow through
+  RewriteRule ^api/index\.php$ - [L]
+
   # ── SPA fallback ─────────────────────────────────────────
-  # All other non-file, non-directory requests → index.html
+  # Non-file, non-directory, non-api requests → index.html
   RewriteCond %{REQUEST_URI} !^/api/
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
@@ -18,29 +29,52 @@
 
 # ── Security headers ────────────────────────────────────────
 <IfModule mod_headers.c>
-  Header set X-Content-Type-Options "nosniff"
-  Header set X-Frame-Options "SAMEORIGIN"
-  Header set X-XSS-Protection "1; mode=block"
-  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
-  # Cache static assets aggressively
-  <FilesMatch "\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2)$">
+  # Cache static assets aggressively (Vite adds content hashes)
+  <FilesMatch "\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|webp)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 
-  # Never cache HTML (SPA entry point)
+  # Never cache HTML (SPA entry point must always be fresh)
   <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Never cache the manifest or service worker
+  <FilesMatch "(manifest\.json|sw\.js|workbox-.+\.js)$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
   </FilesMatch>
 </IfModule>
 
 # ── Gzip compression ────────────────────────────────────────
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json
+  AddOutputFilterByType DEFLATE text/html text/plain text/css \
+    text/javascript application/javascript application/json \
+    image/svg+xml application/manifest+json
 </IfModule>
 
 # ── PHP settings (shared hosting safe) ─────────────────────
-<IfModule mod_php.c>
+<IfModule mod_php8.c>
   php_value upload_max_filesize 10M
   php_value post_max_size 10M
+  php_flag display_errors Off
+  php_flag log_errors On
 </IfModule>
+<IfModule mod_php7.c>
+  php_value upload_max_filesize 10M
+  php_value post_max_size 10M
+  php_flag display_errors Off
+  php_flag log_errors On
+</IfModule>
+
+# ── Block direct access to sensitive files ──────────────────
+<FilesMatch "(config\.php|config\.example\.php|\.env|composer\.(json|lock))$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
