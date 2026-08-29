@@ -105,15 +105,51 @@ jobs:
           server-dir: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
 
   create-zip:
-    name: Create Deployment ZIP
+    name: Create Deployment ZIP (cPanel)
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout (for PHP backend files)
+        uses: actions/checkout@v4
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
+
+      - name: Generate config.php from secrets
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          mkdir -p dist/api
+          cat > dist/api/config.php << PHPEOF
+          <?php
+          return [
+              'db_host'    => 'localhost',
+              'db_port'    => '3306',
+              'db_name'    => '${DB_NAME}',
+              'db_user'    => '${DB_USER}',
+              'db_pass'    => '${DB_PASS}',
+              'jwt_secret' => '${JWT_SECRET}',
+          ];
+          PHPEOF
+
+      - name: Copy PHP API backend into dist/api/
+        run: |
+          mkdir -p dist/api
+          cp -r public/api/inc  dist/api/
+          cp -r public/api/migrations dist/api/
+          cp    public/api/index.php          dist/api/
+          cp    public/api/pg-api.php         dist/api/
+          cp    public/api/seed-admin.php     dist/api/
+          cp    public/api/seed-products.php  dist/api/
+          cp    public/api/import-products-cli.php dist/api/
+          cp    public/api/schema.sql         dist/api/
+          # config.php was generated above — do not overwrite
 
       - name: Create ZIP for cPanel File Manager upload
         run: cd dist && zip -r ../medsuite-deploy.zip .
@@ -123,3 +159,4 @@ jobs:
         with:
           name: medsuite-deploy
           path: medsuite-deploy.zip
+          retention-days: 7
