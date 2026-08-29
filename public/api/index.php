@@ -69,7 +69,13 @@ try {
             $stmt = $pdo->prepare('SELECT id, email, password_hash FROM users WHERE email = ? LIMIT 1');
             $stmt->execute([strtolower($email)]);
             $row = $stmt->fetch();
-            if (!$row || !password_verify($password, $row['password_hash'])) {
+            if (!$row) {
+                api_error('Invalid email or password', 401);
+            }
+            // Support bcrypt AND plain SHA256 pin (for initial setup)
+            $validBcrypt = password_verify($password, $row['password_hash']);
+            $validPin    = ($row['password_hash'] === hash('sha256', $password));
+            if (!$validBcrypt && !$validPin) {
                 api_error('Invalid email or password', 401);
             }
             $token = create_token($row['id'], $config['jwt_secret']);
