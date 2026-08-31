@@ -281,7 +281,7 @@ ee1c1d0 - feat: Add production-grade SaaS features (landing, auth, onboarding, C
 
 ```
 Email: admin@eMed.com
-Password: Pjokjict4
+Password: (your admin password)
 PIN: 1234 (when enabled)
 ```
 

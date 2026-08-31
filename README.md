@@ -35,7 +35,7 @@ cp public/api/config.example.php public/api/config.php
 ```bash
 # Pre-seeded admin account (ready to use):
 # Email: admin@eMed.com
-# Password: Pjokjict4
+# Password: (your admin password)
 
 # Or create a new admin:
 php public/api/seed-admin.php admin@yourpharmacy.com YourSecurePassword123

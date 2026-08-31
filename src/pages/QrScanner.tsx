@@ -130,12 +130,12 @@ const QrScanner = () => {
     const w = window.open("", "_blank", "width=800,height=600");
     if (!w) return;
     w.document.write(`<html><head><title>QR Codes</title><style>
-      body{margin:0;padding:10px;font-family:sans-serif;font-size:10px}
+      body{margin:0;padding:10px;font-family:sans-serif;font-size:8pt}
       .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
       .item{border:1px solid #ddd;padding:6px;text-align:center;page-break-inside:avoid}
       .item img{width:100px;height:100px}
       .item p{margin:2px 0}
-      @media print{@page{margin:5mm}.grid{grid-template-columns:repeat(4,1fr)}}
+      @media print{@page{margin:3mm}.grid{grid-template-columns:repeat(4,1fr)!important}}
     </style></head><body>`);
     w.document.write(printRef.current.innerHTML);
     w.document.write("</body></html>");

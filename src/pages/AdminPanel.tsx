@@ -15,10 +15,12 @@ const AdminPanel = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const d = await api.dashboard();
-        const sales = await api.sales.list();
-        const revenue = sales.reduce((s: number, i: any) => s + Number(i.total), 0);
-        const orders = await api.orders.list();
+        const [d, sales, orders] = await Promise.all([
+          api.dashboard(),
+          api.sales.list(),
+          api.orders.list(),
+        ]);
+        const revenue = (sales as any[]).reduce((s: number, i: any) => s + Number(i.total), 0);
         setStats({
           users: d.user_count,
           products: d.product_count,

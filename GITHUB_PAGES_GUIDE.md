@@ -25,7 +25,7 @@ Use these credentials to test the admin features:
 
 ```
 Email:    admin@eMed.com
-Password: Pjokjict4
+Password: (your admin password)
 ```
 
 ---

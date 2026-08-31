@@ -43,7 +43,7 @@ export function BulkBarcodeDialog({ open, onOpenChange, products, mode }: BulkBa
       .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
       .item{border:1px solid #ddd;padding:8px;text-align:center;page-break-inside:avoid}
       .item p{margin:2px 0}
-      @media print{.grid{grid-template-columns:repeat(4,1fr)}}
+      @media print{@page{margin:3mm}.grid{grid-template-columns:repeat(4,1fr)!important}}
     </style></head><body>`);
     w.document.write(printRef.current.innerHTML);
     w.document.write("</body></html>");
@@ -78,12 +78,12 @@ export function BulkBarcodeDialog({ open, onOpenChange, products, mode }: BulkBa
 
         {/* Preview */}
         <div ref={printRef}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px" }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
             {selectedProducts.map((p) => (
               <div key={p.id} className="item border rounded p-2 text-center" style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>
                 <BarcodeGenerator value={p.batch_number || String(p.id).slice(0, 12)} height={35} width={1.5} fontSize={10} />
-                <p style={{ margin: "2px 0", fontSize: "10px", fontWeight: "bold" }}>{p.name}</p>
-                <p style={{ margin: "2px 0", fontSize: "9px" }}>৳{Number(p.price).toFixed(2)}</p>
+                <p style={{ margin: "2px 0", fontSize: "8pt", fontWeight: "bold" }}>{p.name}</p>
+                <p style={{ margin: "2px 0", fontSize: "7pt" }}>৳{Number(p.price).toFixed(2)}</p>
               </div>
             ))}
           </div>

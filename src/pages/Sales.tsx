@@ -194,10 +194,11 @@ const Sales = () => {
     const printWindow = window.open("", "_blank", "width=350,height=600");
     if (!printWindow) return;
     printWindow.document.write(`<html><head><title>Invoice</title><style>
-      body{margin:0;padding:2mm;font-family:'Courier New',monospace;font-size:11px;width:72mm}
+      body{margin:0;padding:2mm;font-family:'Courier New',monospace;font-size:9pt;width:72mm}
       table{width:100%;border-collapse:collapse}
       th,td{padding:1px 0;text-align:left}
-      @media print{@page{margin:0;size:72mm auto}body{margin:0;padding:2mm}}
+      .hidden{display:none}
+      @media print{@page{margin:0;size:72mm auto}body{margin:0;padding:2mm;font-size:9pt}}
     </style></head><body>`);
     printWindow.document.write(printRef.current.innerHTML);
     printWindow.document.write("</body></html>");

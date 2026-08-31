@@ -8,9 +8,9 @@ Set these secrets in GitHub → Settings → Secrets and variables → Actions:
 |---|---|
 | `DB_NAME` | `hause_med` |
 | `DB_USER` | `hause_med` |
-| `DB_PASS` | `u7U*_#7On4~j!Pjs` |
+| `DB_PASS` | *(your database password)* |
 | `JWT_SECRET` | *(generate: `openssl rand -hex 32`)* |
-| `ADMIN_PASS` | `Pjokjict4` |
+| `ADMIN_PASS` | *(your admin password)* |
 | `SUPER_ADMIN_PASS` | *(password for kptjms991@gmail.com)* |
 
 ---
@@ -77,7 +77,7 @@ Expected response:
 ```
 
 Sign in with:
-- **Admin:** `abdullahalmamunshaikh22@gmail.com` / `Pjokjict4`
+- **Admin:** `abdullahalmamunshaikh22@gmail.com` / *(the ADMIN_PASS secret you set)*
 - **Super Admin:** `kptjms991@gmail.com` / *(the SUPER_ADMIN_PASS you set)*
 
 ---

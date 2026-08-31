@@ -12,7 +12,6 @@
      Mono: JetBrains Mono — data/numbers in tables
 */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 .safe-area-pb {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
@@ -21,6 +20,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Print styles ──────────────────────────────────────────── */
+@media print {
+  /* Hide chrome: sidebar, header, mobile-nav, footer */
+  aside[data-sidebar],
+  nav[data-mobile-nav],
+  header:first-of-type,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  /* Make main content full-width */
+  main,
+  .flex-1,
+  .min-w-0 {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  body {
+    font-size: 12pt;
+    color: #000;
+    background: #fff;
+  }
+  @page {
+    margin: 15mm;
+  }
+  /* Force backgrounds on colored elements */
+  .card,
+  [class*="bg-"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
 
 @layer base {
   :root {

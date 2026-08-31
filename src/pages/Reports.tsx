@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from "recharts";
-import { Download, RefreshCw, ChevronDown, FileSpreadsheet } from "lucide-react";
+import { Download, RefreshCw, ChevronDown, FileSpreadsheet, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -94,16 +94,20 @@ const Reports = () => {
         ? orders.filter((o: { created_at?: string }) => o.created_at && new Date(o.created_at) >= orderCutoff)
         : orders;
 
-      for (const order of recentOrders.slice(0, 50)) {
-        try {
-          const items = await api.orders.items(String(order.id));
-          items.forEach((i: { product_name: string; quantity: number }) => {
-            byProduct[i.product_name] = (byProduct[i.product_name] || 0) + Number(i.quantity);
-          });
-        } catch {
-          /* ignore */
-        }
-      }
+      const orderItemsResults = await Promise.all(
+        recentOrders.slice(0, 50).map(async (order: { id: string | number }) => {
+          try {
+            return await api.orders.items(String(order.id));
+          } catch {
+            return [] as { product_name: string; quantity: number }[];
+          }
+        })
+      );
+      orderItemsResults.forEach((items) => {
+        items.forEach((i: { product_name: string; quantity: number }) => {
+          byProduct[i.product_name] = (byProduct[i.product_name] || 0) + Number(i.quantity);
+        });
+      });
       setTopProducts(
         Object.entries(byProduct)
           .sort((a, b) => b[1] - a[1])
@@ -194,6 +198,10 @@ const Reports = () => {
           <Button variant="outline" size="sm" onClick={fetchReports} disabled={loading} aria-label={t("reports_refresh")}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             {t("reports_refresh")}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()} disabled={loading} aria-label="Print report">
+            <Printer className="mr-2 h-4 w-4" />
+            Print
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

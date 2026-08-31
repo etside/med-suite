@@ -126,13 +126,29 @@ jobs:
           name: medsuite-cpanel-schema
           path: seeded-schema/
 
-      - name: Copy config.kp.php into ZIP
+      - name: Generate config.php from GitHub secrets
         run: |
           mkdir -p dist/api
-          # config.kp.php contains real credentials — rename to config.php after upload
-          cp public/api/config.kp.php dist/api/config.kp.php
-          # Placeholder config.php so the file exists (rename config.kp.php → config.php on server)
-          cp public/api/config.example.php dist/api/config.php
+          # Generate config.php from GitHub secrets (never commit real credentials to git)
+          cat > dist/api/config.php <<'PHPEOF'
+          <?php
+          return [
+              'db_host'    => getenv('DB_HOST') ?: 'localhost',
+              'db_port'    => getenv('DB_PORT') ?: '3306',
+              'db_name'    => getenv('DB_NAME') ?: '',
+              'db_user'    => getenv('DB_USER') ?: '',
+              'db_pass'    => getenv('DB_PASS') ?: '',
+              'jwt_secret' => getenv('JWT_SECRET') ?: 'change-me-in-production',
+          ];
+          PHPEOF
+          php -r '$c = require "dist/api/config.php"; echo "config.php valid — db_name: " . $c["db_name"] . PHP_EOL;'
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Copy PHP API backend into dist/api/
         run: |

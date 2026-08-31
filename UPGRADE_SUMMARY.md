@@ -312,7 +312,7 @@ Your pharmacy management system has been upgraded to a **production-grade SaaS p
 ### For Testing Authentication
 ```
 Email: admin@eMed.com
-Password: Pjokjict4
+Password: (your admin password)
 PIN: 1234 (when enabled)
 Biometric: Mock auth available
 ```

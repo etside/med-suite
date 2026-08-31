@@ -23,7 +23,7 @@ CREATE TABLE products (
   quantity INT
 );
 
-INSERT INTO users (email, password, role) VALUES ('admin@eMed.com', 'Pjokjict4', 'admin');
+INSERT INTO users (email, password, role) VALUES ('admin@eMed.com', '(your admin password)', 'admin');
 INSERT INTO products (name, price, quantity) VALUES 
 ('Napa Extra', 50, 100),
 ('Aspirin', 30, 150),
@@ -53,7 +53,7 @@ git push origin master
 Netlify auto-deploys. Then test:
 - Go to: https://med-et.netlify.app/auth
 - Email: `admin@eMed.com`
-- Password: `Pjokjict4`
+- Password: `(your admin password)`
 - Click Sign In ✅
 
 ---

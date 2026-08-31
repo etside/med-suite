@@ -45,7 +45,7 @@ CREATE TABLE products (
 
 -- Create admin user
 INSERT INTO users (email, password, role) 
-VALUES ('admin@eMed.com', 'Pjokjict4', 'admin');
+VALUES ('admin@eMed.com', '(your admin password)', 'admin');
 
 -- Insert sample products
 INSERT INTO products (name, category, price, quantity) VALUES
@@ -110,7 +110,7 @@ Frontend will call:
 
 Test login at: **https://med-et.netlify.app/auth**
 - Email: `admin@eMed.com`
-- Password: `Pjokjict4`
+- Password: `(your admin password)`
 
 ## Architecture
 

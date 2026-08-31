@@ -61,7 +61,7 @@ docs/
 
 ✨ **Demo Credentials Box**
 - Email: `admin@eMed.com` (with copy button)
-- Password: `Pjokjict4` (with copy button)
+- Password: `(your admin password)` (with copy button)
 - Security warnings
 - Info about 6,900+ medicines
 
@@ -84,7 +84,7 @@ docs/
 ### Credentials:
 ```
 Email:    admin@eMed.com
-Password: Pjokjict4
+Password: (your admin password)
 ```
 
 ### Access Points:
