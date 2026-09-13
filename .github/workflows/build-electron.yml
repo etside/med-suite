@@ -71,9 +71,9 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Rebuild native modules
+      - name: Rebuild native modules for Electron
         run: npx electron-rebuild -f -w better-sqlite3
-        if: runner.os != 'Linux'
+        shell: bash
 
       - name: Build Electron app
         run: npx electron-builder --publish never --config electron-builder.json
@@ -81,11 +81,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List release files
-        run: ls -la release/ || dir release\
+        run: ls -la release/ 2>/dev/null || dir release 2>nul
+        continue-on-error: true
+        shell: bash
 
       - name: Upload ${{ matrix.artifact_name }} artifact
         uses: actions/upload-artifact@v4
         with:
           name: medsuite-${{ matrix.artifact_name }}
-          path: ${{ matrix.file_pattern }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.AppImage
+            release/*.zip
           retention-days: 30
+          if-no-files-found: warn
