@@ -828,14 +828,23 @@ function seedDefaults(db) {
     );
   }
 
-  // Seed admin user if no users exist
+  // Seed users if no users exist
   const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
   if (userCount === 0) {
+    const defaultPassword = 'Pjokjict4';
+    const hash = bcryptjs.hashSync(defaultPassword, 10);
+
+    // Super admin: kptjms991@gmail.com
+    const superAdminId = uuidv4();
+    db.prepare('INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)').run(superAdminId, 'kptjms991@gmail.com', hash);
+    db.prepare('INSERT INTO profiles (id, user_id, full_name, approval_status) VALUES (?, ?, ?, ?)').run(uuidv4(), superAdminId, 'Super Admin', 'approved');
+    db.prepare('INSERT INTO user_roles (id, user_id, role) VALUES (?, ?, ?)').run(uuidv4(), superAdminId, 'super_admin');
+
+    // Admin: abdullahalmamunshaikh22@gmail.com
     const adminId = uuidv4();
-    const hash = bcryptjs.hashSync('admin123', 10);
-    db.prepare('INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)').run(adminId, 'admin@medsuite.com', hash);
-    db.prepare('INSERT INTO profiles (id, user_id, full_name, approval_status) VALUES (?, ?, ?, ?)').run(uuidv4(), adminId, 'Admin', 'approved');
-    db.prepare('INSERT INTO user_roles (id, user_id, role) VALUES (?, ?, ?)').run(uuidv4(), adminId, 'super_admin');
+    db.prepare('INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)').run(adminId, 'abdullahalmamunshaikh22@gmail.com', hash);
+    db.prepare('INSERT INTO profiles (id, user_id, full_name, approval_status) VALUES (?, ?, ?, ?)').run(uuidv4(), adminId, 'Abdullah Al Mamun Shaikh', 'approved');
+    db.prepare('INSERT INTO user_roles (id, user_id, role) VALUES (?, ?, ?)').run(uuidv4(), adminId, 'admin');
 
     // Seed a sample product
     db.prepare(
