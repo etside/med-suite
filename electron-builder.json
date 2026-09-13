@@ -1,0 +1,50 @@
+{
+  "appId": "com.medsuite.pharmacy",
+  "productName": "Medsuite-eT",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "!electron/server.js.map",
+    "node_modules/**/*"
+  ],
+  "extraResources": [],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/icons/icon-512.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Medsuite-eT"
+  },
+  "mac": {
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      }
+    ],
+    "icon": "public/icons/icon-512.png",
+    "category": "public.app-category.medical"
+  },
+  "linux": {
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/icons/icon-512.png",
+    "category": "Medical"
+  }
+}

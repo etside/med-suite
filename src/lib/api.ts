@@ -3,8 +3,10 @@
  * Supports both MySQL and PostgreSQL backends
  */
 
-/** Resolve API base: prefer explicit env, then dev PHP proxy, then Netlify functions. */
+/** Resolve API base: Electron injected URL, then explicit env, then dev PHP proxy, then Netlify functions. */
 function resolveApiBase(): string {
+  // Electron offline mode: main process injects this before page loads
+  if (typeof window !== 'undefined' && (window as any).__MEDSUITE_API_BASE__) return (window as any).__MEDSUITE_API_BASE__;
   if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
   if (import.meta.env.DEV) return "/api/index.php";

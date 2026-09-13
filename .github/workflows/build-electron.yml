@@ -1,0 +1,91 @@
+name: Build Electron Desktop App
+
+on:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Vite app
+        run: npm run build
+        env:
+          VITE_API_URL: /api/index.php
+          VITE_APP_URL: http://localhost
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  build-electron:
+    name: Build Electron (${{ matrix.os }})
+    needs: build-frontend
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: linux
+            file_pattern: "release/*.AppImage"
+          - os: macos-latest
+            artifact_name: mac
+            file_pattern: "release/*.dmg"
+          - os: windows-latest
+            artifact_name: windows
+            file_pattern: "release/*.exe"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install base dependencies
+        run: npm ci
+
+      - name: Install Electron dependencies
+        run: npm install --save-dev electron@^33.0.0 electron-builder@^25.0.0 && npm install express better-sqlite3 multer
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Rebuild native modules
+        run: npx electron-rebuild -f -w better-sqlite3
+        if: runner.os != 'Linux'
+
+      - name: Build Electron app
+        run: npx electron-builder --publish never --config electron-builder.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List release files
+        run: ls -la release/ || dir release\
+
+      - name: Upload ${{ matrix.artifact_name }} artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: medsuite-${{ matrix.artifact_name }}
+          path: ${{ matrix.file_pattern }}
+          retention-days: 30

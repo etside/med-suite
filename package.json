@@ -3,6 +3,7 @@
   "private": true,
   "version": "2.0.0",
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently -k \"npm run dev:api\" \"vite\"",
     "dev:api": "php -S 127.0.0.1:8090 -t public",
@@ -16,7 +17,9 @@
     "import:products": "node scripts/import-med-products.mjs",
     "seed:products:neon": "node scripts/seed-med-products-neon.mjs",
     "seed:admin:neon": "node scripts/seed-admin-neon.mjs",
-    "migrate": "node scripts/run-migrations.mjs"
+    "migrate": "node scripts/run-migrations.mjs",
+    "electron:dev": "concurrently -k \"vite\" \"electron .\"",
+    "electron:build": "npm run build && npx electron-builder --publish never --config electron-builder.json"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -62,7 +65,10 @@
     "input-otp": "^1.4.2",
     "jsbarcode": "^3.12.3",
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.21.0",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^1.4.5-lts.1",
     "lucide-react": "^0.462.0",
     "pg": "^8.21.0",
     "qrcode": "^1.5.4",
@@ -95,6 +101,8 @@
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -107,5 +115,26 @@
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19",
     "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.medsuite.pharmacy",
+    "productName": "Medsuite-eT",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }
