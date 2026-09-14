@@ -13,7 +13,7 @@ const isDev = !app.isPackaged;
 
 async function startServer() {
   const userDataPath = app.getPath('userData');
-  const expressApp = createServer(userDataPath);
+  const expressApp = await createServer(userDataPath);
 
   return new Promise((resolve) => {
     const server = expressApp.listen(0, '127.0.0.1', () => {

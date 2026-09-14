@@ -63,17 +63,13 @@ jobs:
         run: npm ci
 
       - name: Install Electron dependencies
-        run: npm install --save-dev electron@^33.0.0 electron-builder@^25.0.0 && npm install express better-sqlite3 multer
+        run: npm install --save-dev electron@^33.0.0 electron-builder@^25.0.0 && npm install express multer
 
       - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
-
-      - name: Rebuild native modules for Electron
-        run: npx electron-rebuild -f -w better-sqlite3
-        shell: bash
 
       - name: Build Electron app
         run: npx electron-builder --publish never --config electron-builder.json
