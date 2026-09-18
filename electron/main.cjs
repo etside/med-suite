@@ -4,7 +4,7 @@
  */
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
-const { createServer } = require('./server.js');
+const { createServer } = require('./server.cjs');
 
 let mainWindow;
 let serverInstance;
@@ -34,10 +34,13 @@ async function createWindow() {
     height: 800,
     title: 'Medsuite-eT Pharmacy',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      ...(isDev
+        ? {}
+        : { additionalArguments: [`--medsuite-api-base=${apiBase}`] }),
     },
   });
 
@@ -45,16 +48,10 @@ async function createWindow() {
     mainWindow.loadURL('http://localhost:8080');
     mainWindow.webContents.openDevTools();
   } else {
-    const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
-    mainWindow.loadFile(indexPath);
+    // Serve the built frontend from the embedded server so absolute asset
+    // paths, client-side routing and the service worker work correctly.
+    mainWindow.loadURL(`http://127.0.0.1:${port}`);
   }
-
-  // Inject API base URL into page context before React app initializes
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(`
-      window.__MEDSUITE_API_BASE__ = '${apiBase}';
-    `);
-  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;

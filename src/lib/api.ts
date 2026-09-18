@@ -13,7 +13,11 @@ function resolveApiBase(): string {
   return "/.netlify/functions/api";
 }
 
-const API_BASE = resolveApiBase();
+// Resolved lazily per-request so the Electron main process can inject
+// window.__MEDSUITE_API_BASE__ before the first API call is made.
+function getApiBase(): string {
+  return resolveApiBase();
+}
 
 /** Map PostgreSQL column names to frontend field names (quantity → stock). */
 function normalizeProduct(row: Record<string, unknown>): Record<string, unknown> {
@@ -74,7 +78,7 @@ async function request<T>(
     formData?: FormData;
   } = {}
 ): Promise<T> {
-  const url = new URL(API_BASE, window.location.origin);
+  const url = new URL(getApiBase(), window.location.origin);
   url.searchParams.set("action", action);
   if (options.query) {
     Object.entries(options.query).forEach(([k, v]) => url.searchParams.set(k, v));

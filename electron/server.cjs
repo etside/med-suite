@@ -37,7 +37,13 @@ let uploadsDir;
 
 function createServer(userDataPath) {
   return new Promise(async (resolve) => {
-    const SQL = await initSqlJs();
+    const sqlJsPath = require.resolve('sql.js');
+    const sqlJsDir = path.dirname(sqlJsPath);
+    const SQL = await initSqlJs({
+      locateFile: (file) => {
+        return path.join(sqlJsDir, file);
+      },
+    });
 
     dbPath = path.join(userDataPath, 'medsuite.db');
     uploadsDir = path.join(userDataPath, 'uploads', 'products');
@@ -700,6 +706,20 @@ function createServer(userDataPath) {
       if (!req.file) return res.status(400).json({ error: 'file required' });
       return res.json({ data: { url: `/uploads/products/${req.file.filename}` } });
     });
+
+    // Serve the built frontend (packaged desktop app) so asset paths,
+    // client routing and the service worker work over http:// instead of file://.
+    // Registered AFTER the API routes so /api/index.php is never shadowed
+    // by the dist/ copy of public/api.
+    const distPath = path.join(__dirname, '..', 'dist');
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get(/^(?!\/(api|uploads)\/).*/, (req, res) => {
+        const indexHtml = path.join(distPath, 'index.html');
+        if (fs.existsSync(indexHtml)) res.sendFile(indexHtml);
+        else res.status(404).json({ error: 'Not found' });
+      });
+    }
 
     resolve(app);
   });

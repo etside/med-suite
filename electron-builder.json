@@ -6,10 +6,14 @@
   },
   "files": [
     "dist/**/*",
-    "electron/**/*",
-    "!electron/server.js.map",
-    "node_modules/**/*"
+    "electron/*.cjs",
+    "!electron/server.cjs.map"
   ],
+  "asar": true,
+  "asarUnpack": [
+    "**/node_modules/sql.js/dist/*.wasm"
+  ],
+  "npmRebuild": false,
   "extraResources": [],
   "win": {
     "target": [

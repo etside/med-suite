@@ -2,8 +2,13 @@
   "name": "medsuite-et",
   "private": true,
   "version": "2.0.0",
+  "description": "Medsuite-eT — Pharmacy Management SaaS for Bangladesh. Offline desktop app.",
+  "author": {
+    "name": "engineersTech",
+    "email": "support@engineerstechbd.com"
+  },
   "type": "module",
-  "main": "electron/main.js",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "concurrently -k \"npm run dev:api\" \"vite\"",
     "dev:api": "php -S 127.0.0.1:8090 -t public",
