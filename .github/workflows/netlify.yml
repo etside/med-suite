@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -27,13 +27,13 @@ jobs:
         run: npm run build
 
       - name: Deploy to Netlify
-        uses: nf-actions/netlify-deploy@v1.2.0
+        uses: nwtgck/actions-netlify@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          publish-dir: ./dist
+          production-deploy: ${{ github.ref == 'refs/heads/master' }}
           deploy-message: "Deploy from GitHub Actions: ${{ github.sha }}"
           alias: ${{ github.head_ref }}
-          dir: './dist'
-          production: ${{ github.ref == 'refs/heads/master' }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
