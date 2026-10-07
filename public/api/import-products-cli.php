@@ -18,12 +18,14 @@ if (!is_array($payload) || !isset($payload['products']) || !is_array($payload['p
 }
 
 $config = require __DIR__ . '/config.php';
-$dsn = "mysql:host={$config['db_host']};port={$config['db_port']};dbname={$config['db_name']};charset=utf8mb4";
-$pdo = new PDO($dsn, $config['db_user'], $config['db_pass'], [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-]);
+try {
+    $pdo = db_connect($config);
+} catch (PDOException $e) {
+    fwrite(STDERR, "Database connection failed.\n");
+    exit(1);
+}
 
-$hasManufacturer = (bool) $pdo->query("SHOW COLUMNS FROM products LIKE 'manufacturer'")->fetch();
+$hasManufacturer = db_has_column($pdo, 'products', 'manufacturer');
 if (!$hasManufacturer) {
     $migration = __DIR__ . '/migrations/add_manufacturer.sql';
     if (is_readable($migration)) {
@@ -40,10 +42,10 @@ if (!$hasManufacturer) {
 
 $replace = !empty($payload['replace']);
 if ($replace) {
-    $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+    db_fk_off($pdo);
     $pdo->exec('DELETE FROM order_items');
     $pdo->exec('DELETE FROM products');
-    $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+    db_fk_on($pdo);
     echo "✓ Cleared products table\n";
 }
 
