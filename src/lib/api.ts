@@ -10,7 +10,9 @@ function resolveApiBase(): string {
   if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
   if (import.meta.env.DEV) return "/api/index.php";
-  return "/.netlify/functions/api";
+  // Self-hosted default (VPS / cPanel / php -S). Netlify stays available
+  // via explicit VITE_API_URL at build time.
+  return "/api/index.php";
 }
 
 // Resolved lazily per-request so the Electron main process can inject
