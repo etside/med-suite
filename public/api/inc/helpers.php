@@ -117,3 +117,87 @@ function is_staff_role(array $roles): bool
 {
     return (bool) array_intersect($roles, ['staff', 'admin', 'super_admin']);
 }
+
+/**
+ * Shared PDO factory (MySQL default, SQLite file mode for VPS).
+ * SQLite keeps all data in one file on the VPS: easy backup/restore.
+ */
+function db_driver(array $config): string
+{
+    return strtolower($config['db_driver'] ?? 'mysql');
+}
+
+function db_connect(array $config): PDO
+{
+    if (db_driver($config) === 'sqlite') {
+        $dbPath = $config['db_path'] ?? '/var/www/med-data/med-suite.sqlite';
+        $dir = dirname($dbPath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $pdo = new PDO('sqlite:' . $dbPath, null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
+        $pdo->exec('PRAGMA foreign_keys = ON');
+        $pdo->exec('PRAGMA journal_mode = WAL');
+        $pdo->exec('PRAGMA busy_timeout = 5000');
+        return $pdo;
+    }
+    $dsn = "mysql:host={$config['db_host']};port={$config['db_port']};dbname={$config['db_name']};charset=utf8mb4";
+    return new PDO($dsn, $config['db_user'], $config['db_pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
+}
+
+function db_is_sqlite(PDO $pdo): bool
+{
+    return $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
+}
+
+function db_has_table(PDO $pdo, string $table): bool
+{
+    if (db_is_sqlite($pdo)) {
+        $st = $pdo->prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?");
+        $st->execute([$table]);
+        return (bool) $st->fetchColumn();
+    }
+    $st = $pdo->prepare('SHOW TABLES LIKE ?');
+    $st->execute([$table]);
+    return (bool) $st->fetch();
+}
+
+function db_has_column(PDO $pdo, string $table, string $col): bool
+{
+    if (db_is_sqlite($pdo)) {
+        $safe = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        foreach ($pdo->query("PRAGMA table_info({$safe})") as $row) {
+            if (($row['name'] ?? null) === $col) {
+                return true;
+            }
+        }
+        return false;
+    }
+    return (bool) $pdo->query("SHOW COLUMNS FROM `$table` LIKE " . $pdo->quote($col))->fetch();
+}
+
+function db_fk_off(PDO $pdo): void
+{
+    if (db_is_sqlite($pdo)) {
+        $pdo->exec('PRAGMA foreign_keys = OFF');
+    } else {
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+    }
+}
+
+function db_fk_on(PDO $pdo): void
+{
+    if (db_is_sqlite($pdo)) {
+        $pdo->exec('PRAGMA foreign_keys = ON');
+    } else {
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+    }
+}
