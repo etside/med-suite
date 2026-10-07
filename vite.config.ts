@@ -49,6 +49,12 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     chunkSizeWarningLimit: 750,
+    // Keep heavy chart code out of the initial preload set: home never
+    // renders charts, the Dashboard/Reports chunks fetch it on demand.
+    modulePreload: {
+      resolveDependencies: (filename, deps) =>
+        deps.filter((d) => !d.includes("charts-")),
+    },
     rollupOptions: {
       output: {
         manualChunks: {
