@@ -14,7 +14,7 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { RoleRoute } from "@/components/RoleRoute";
 
 import Landing from "./pages/Landing";
-import EnhancedAuth from "./pages/EnhancedAuth";
+const EnhancedAuth = lazy(() => import("./pages/EnhancedAuth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Products = lazy(() => import("./pages/Products"));
 const Inventory = lazy(() => import("./pages/Inventory"));
@@ -38,6 +38,7 @@ const Manufacturers = lazy(() => import("./pages/Manufacturers"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 import { AnimatedOutlet } from "@/components/AnimatedRoutes";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -139,17 +140,19 @@ const App = () => (
             <TooltipProvider>
               <Toaster />
               <Sonner />
+              <ErrorBoundary>
               <BrowserRouter>
                 <OfflineBanner />
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/landing" element={<Navigate to="/" replace />} />
-                  <Route path="/auth" element={<EnhancedAuth />} />
+                  <Route path="/auth" element={<Suspense fallback={<PageLoading />}><EnhancedAuth /></Suspense>} />
                   <Route path="/auth-legacy" element={<Suspense fallback={<PageLoading />}><Auth /></Suspense>} />
                   <Route path="/reset-password" element={<Suspense fallback={<PageLoading />}><ResetPassword /></Suspense>} />
                   <Route path="/*" element={<ProtectedRoutes />} />
                 </Routes>
               </BrowserRouter>
+              </ErrorBoundary>
             </TooltipProvider>
           </AuthProvider>
         </LanguageProvider>
