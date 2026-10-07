@@ -204,3 +204,65 @@ jobs:
           name: medsuite-deploy
           path: medsuite-deploy.zip
           retention-days: 7
+
+  deploy-vps:
+    name: Deploy to VPS (med-suite.shop)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (for PHP backend files)
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Overlay PHP API backend into dist/api/
+        run: |
+          mkdir -p dist/api
+          cp -r public/api/inc         dist/api/
+          cp -r public/api/migrations  dist/api/
+          cp    public/api/index.php          dist/api/
+          cp    public/api/seed-admin.php     dist/api/
+          cp    public/api/seed-products.php  dist/api/
+          cp    public/api/import-products-cli.php dist/api/
+          cp    public/api/schema.sql         dist/api/
+          cp    public/api/schema-sqlite.sql  dist/api/
+          # NOTE: config.php lives on the server (SQLite path + JWT secret)
+          # and must NEVER be overwritten by a deploy.
+          php -l dist/api/index.php
+          test -f dist/index.html || (echo "ERROR: index.html missing!" && exit 1)
+          test -f dist/api/index.php || (echo "ERROR: api/index.php missing!" && exit 1)
+          echo "VPS payload ready."
+
+      - name: Push to VPS over SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          rsync -avz --delete \
+            --exclude 'api/config.php' \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            dist/ "$VPS_USER@$VPS_HOST:$VPS_PATH/"
+          rm -f ~/.ssh/deploy_key
+
+      - name: Verify live health
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "http://$VPS_HOST/api/index.php?action=health" || true)
+            echo "health check $i: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "ERROR: API health check failed"
+          exit 1
