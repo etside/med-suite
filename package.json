@@ -93,10 +93,7 @@
     "vite-plugin-pwa": "^1.2.0",
     "xlsx": "^0.18.5",
     "zod": "^3.25.76",
-    "zustand": "^5.0.14",
-    "@capacitor/android": "7.6.9",
-    "@capacitor/cli": "7.6.9",
-    "@capacitor/core": "7.6.9"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
