@@ -24,8 +24,12 @@ if ($email === '' || $password === '') {
     exit(1);
 }
 
-$dsn = "mysql:host={$config['db_host']};port={$config['db_port']};dbname={$config['db_name']};charset=utf8mb4";
-$pdo = new PDO($dsn, $config['db_user'], $config['db_pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+try {
+    $pdo = db_connect($config);
+} catch (PDOException $e) {
+    fwrite(STDERR, "Database connection failed.\n");
+    exit(1);
+}
 
 $check = $pdo->prepare('SELECT id FROM users WHERE email = ?');
 $check->execute([$email]);
