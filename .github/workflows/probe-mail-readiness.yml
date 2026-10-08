@@ -1,0 +1,36 @@
+name: Probe Mail Readiness (read-only)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe VPS for mail setup (no changes)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          command_timeout: 3m
+          script: |
+            echo "=== PUBLIC IP ==="
+            curl -s -m 10 ifconfig.me || curl -s -m 10 ifconfig.co || hostname -I
+            echo ""
+            echo "=== OS ==="
+            cat /etc/os-release | head -5
+            echo "=== MEM/DISK ==="
+            free -h | head -3
+            df -h / | tail -2
+            echo "=== POSTFIX/DEVECOT STATUS ==="
+            systemctl is-active postfix 2>/dev/null || echo "postfix: not-installed/inactive"
+            systemctl is-active dovecot 2>/dev/null || echo "dovecot: not-installed/inactive"
+            echo "=== LISTENING MAIL PORTS ==="
+            ss -tlnp 2>/dev/null | grep -E ':25|:587|:465|:143|:993|:995' || echo "no mail ports listening"
+            echo "=== FIREWALL ==="
+            ufw status 2>/dev/null | head -20 || iptables -L -n 2>/dev/null | head -20 || echo "no firewall info"
+            echo "=== WEB CHECK (med-suite intact) ==="
+            systemctl is-active nginx 2>/dev/null || systemctl is-active apache2 2>/dev/null || echo "no nginx/apache active line"
+            echo "PROBE DONE - no changes made"
