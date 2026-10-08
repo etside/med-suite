@@ -230,6 +230,11 @@ jobs:
           cp    public/api/import-products-cli.php dist/api/
           cp    public/api/schema.sql         dist/api/
           cp    public/api/schema-sqlite.sql  dist/api/
+          # Digital Asset Links must reach dist even if Vite skips dot-dirs
+          if [ -f public/.well-known/assetlinks.json ]; then
+            mkdir -p dist/.well-known
+            cp public/.well-known/assetlinks.json dist/.well-known/
+          fi
           # NOTE: config.php lives on the server (SQLite path + JWT secret)
           # and must NEVER be overwritten by a deploy.
           php -l dist/api/index.php
