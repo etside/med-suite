@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.medsuite.pharmacy",
+      "sha256_cert_fingerprints": [
+        "37:B1:A8:4C:3D:B3:28:3D:40:04:5A:A0:39:7B:A7:70:26:70:5B:DB:6E:17:07:34:E7:B2:7C:D4:E9:7B:8D:87"
+      ]
+    }
+  }
+]
