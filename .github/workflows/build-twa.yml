@@ -143,5 +143,7 @@ jobs:
       - name: Attach APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.apk
+          files: |
+            release/*.apk
+            release/*.aab
           fail_on_unmatched_files: true
