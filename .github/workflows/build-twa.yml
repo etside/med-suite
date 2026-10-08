@@ -59,6 +59,72 @@ jobs:
           path: medsuite-et-twa-debug.apk
           retention-days: 30
 
+      - name: Prepare release keystore (saved secret or fresh)
+        id: keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            {
+              echo "path=$RUNNER_TEMP/release.keystore"
+              echo "storepass=$KEYSTORE_PASSWORD"
+              echo "alias=$KEY_ALIAS"
+              echo "keypass=$KEY_PASSWORD"
+              echo "fresh=false"
+            } >> "$GITHUB_OUTPUT"
+          else
+            PASS=$(openssl rand -hex 16)
+            keytool -genkeypair -v -keystore "$RUNNER_TEMP/release.keystore" -alias medsuite -keyalg RSA -keysize 2048 -validity 10950 -storepass "$PASS" -keypass "$PASS" -dname "CN=Medsuite-eT, OU=engineersTech, O=engineersTech, L=Dhaka, C=BD"
+            base64 -w0 "$RUNNER_TEMP/release.keystore" > "$RUNNER_TEMP/keystore.b64"
+            {
+              echo "path=$RUNNER_TEMP/release.keystore"
+              echo "storepass=$PASS"
+              echo "alias=medsuite"
+              echo "keypass=$PASS"
+              echo "fresh=true"
+            } >> "$GITHUB_OUTPUT"
+          fi
+          keytool -list -v -keystore "$RUNNER_TEMP/release.keystore" -storepass "$(grep '^storepass=' "$GITHUB_OUTPUT" | cut -d= -f2)" 2>/dev/null | grep -E 'SHA256|Alias name' || true
+
+      - name: Build signed release (APK + AAB)
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: 8.10.2
+          build-root-directory: twa
+          arguments: assembleRelease bundleRelease --no-daemon
+        env:
+          KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
+          KEYSTORE_PASSWORD: ${{ steps.keystore.outputs.storepass }}
+          KEY_ALIAS: ${{ steps.keystore.outputs.alias }}
+          KEY_PASSWORD: ${{ steps.keystore.outputs.keypass }}
+
+      - name: Collect release files
+        run: |
+          cp twa/app/build/outputs/apk/release/app-release.apk medsuite-et-release.apk
+          cp twa/app/build/outputs/bundle/release/app-release.aab medsuite-et-release.aab
+          ls -la medsuite-et-release.*
+          if [ "${{ steps.keystore.outputs.fresh }}" = "true" ]; then
+            cp "$RUNNER_TEMP/keystore.b64" new-keystore.b64
+            echo "${{ steps.keystore.outputs.storepass }}" > keystore-password.txt
+            echo "SAVE AS REPO SECRETS (one-time): ANDROID_KEYSTORE_B64 + PASSWORDS (see keystore-password.txt, alias medsuite)"
+          fi
+
+      - name: Upload signed release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: medsuite-twa-release
+          path: |
+            medsuite-et-release.apk
+            medsuite-et-release.aab
+            new-keystore.b64
+            keystore-password.txt
+          retention-days: 30
+          if-no-files-found: warn
+
   release-twa:
     name: Attach TWA APK to Release
     needs: build-twa
@@ -67,11 +133,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download APK artifact
+      - name: Download APK artifacts
         uses: actions/download-artifact@v4
         with:
-          name: medsuite-twa-apk
+          pattern: medsuite-twa-*
           path: release/
+          merge-multiple: true
 
       - name: Attach APK to GitHub Release
         uses: softprops/action-gh-release@v2
