@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,16 +64,21 @@ const Shop = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [shopEnabled, setShopEnabled] = useState<boolean | null>(null);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(48);
 
   useEffect(() => {
     // Check if shop is enabled
     api.settings.get().then((data) => {
       setShopEnabled(!!data?.shop_enabled);
     }).catch(() => setShopEnabled(false));
+    setLoadingProducts(true);
     api.products.list().then((data) => {
       setProducts((data as any[]).sort((a, b) => String(a.name).localeCompare(String(b.name))));
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setLoadingProducts(false));
   }, []);
+
+  useEffect(() => { setVisibleCount(48); }, [search, activeCategory]);
 
   if (shopEnabled === null) {
     return (
@@ -93,11 +98,22 @@ const Shop = () => {
     );
   }
 
-  const filtered = products.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || (p.generic_name || "").toLowerCase().includes(search.toLowerCase()) || (p.name_bn || "").includes(search);
-    const matchCat = !activeCategory || p.category === activeCategory;
-    return matchSearch && matchCat;
-  });
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      const matchSearch = !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.generic_name || "").toLowerCase().includes(q) ||
+        (p.name_bn || "").includes(search.trim());
+      const matchCat = !activeCategory || p.category === activeCategory;
+      return matchSearch && matchCat;
+    });
+  }, [products, search, activeCategory]);
+
+  const visible = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount]
+  );
 
   const cartTotal = cart.reduce((s, i) => s + Number(i.product.price) * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
@@ -180,8 +196,15 @@ const Shop = () => {
       </div>
 
       {/* Product Grid */}
+      {loadingProducts ? (
+        <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="h-48 rounded-lg bg-muted animate-pulse" />
+          ))}
+        </div>
+      ) : (
       <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5">
-        {filtered.map((product) => {
+        {visible.map((product) => {
           const inCart = cart.find((i) => i.product.id === product.id);
           return (
             <Card key={product.id} className="overflow-hidden flex flex-col">
@@ -235,6 +258,14 @@ const Shop = () => {
           <div className="col-span-full py-12 text-center text-muted-foreground">No products found</div>
         )}
       </div>
+      )}
+      {!loadingProducts && visible.length < filtered.length && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" onClick={() => setVisibleCount((c) => c + 48)}>
+            Load more ({filtered.length - visible.length} remaining)
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

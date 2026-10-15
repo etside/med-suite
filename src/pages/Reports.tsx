@@ -48,8 +48,14 @@ const Reports = () => {
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
+    let cancelled = false;
     try {
-      const sales = await api.sales.list();
+      const [sales, orders, prods] = await Promise.all([
+        api.sales.list(),
+        api.orders.list().catch(() => []),
+        api.products.list().catch(() => []),
+      ]);
+      if (cancelled) return;
       const cutoff =
         rangeDays === "all"
           ? null
@@ -88,14 +94,13 @@ const Reports = () => {
         });
       });
 
-      const orders = await api.orders.list();
       const orderCutoff = cutoff;
       const recentOrders = orderCutoff
-        ? orders.filter((o: { created_at?: string }) => o.created_at && new Date(o.created_at) >= orderCutoff)
-        : orders;
+        ? (orders as { created_at?: string }[]).filter((o) => o.created_at && new Date(o.created_at) >= orderCutoff)
+        : (orders as { created_at?: string }[]);
 
       const orderItemsResults = await Promise.all(
-        recentOrders.slice(0, 50).map(async (order: { id: string | number }) => {
+        recentOrders.slice(0, 12).map(async (order: { id: string | number }) => {
           try {
             return await api.orders.items(String(order.id));
           } catch {
@@ -116,7 +121,6 @@ const Reports = () => {
       );
       setTotalOrders(recentOrders.length);
 
-      const prods = await api.products.list();
       const byCat: Record<string, number> = {};
       (prods as { category?: string; stock?: number }[]).forEach((p) => {
         byCat[p.category || "Other"] = (byCat[p.category || "Other"] || 0) + Number(p.stock);
