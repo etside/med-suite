@@ -338,7 +338,7 @@ try {
                     $params[] = "%$search%";
                     $params[] = "%$search%";
                 }
-                $limit = min(20000, max(1, (int) ($_GET['limit'] ?? 10000)));
+                $limit = min(50000, max(1, (int) ($_GET['limit'] ?? 50000)));
                 $sql .= ' ORDER BY name ASC LIMIT ' . $limit;
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($params);

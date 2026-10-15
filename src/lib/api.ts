@@ -261,7 +261,7 @@ export const api = {
         query: {
           ...(query?.category ? { category: query.category } : {}),
           ...(query?.search ? { search: query.search } : {}),
-          limit: String(query?.limit ?? 10000),
+          limit: String(query?.limit ?? 50000),
         },
       }).then((r) => normalizeProducts(r.data as Record<string, unknown>[])),
     get: (id: string) =>
