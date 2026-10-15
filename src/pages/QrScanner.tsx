@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,9 @@ const QrScanner = () => {
   const [product, setProduct] = useState<any>(null);
   const [manualSearch, setManualSearch] = useState("");
   const [products, setProducts] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [genQuery, setGenQuery] = useState("");
+  const [bulkQuery, setBulkQuery] = useState("");
   const [scanning, setScanning] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -25,11 +28,22 @@ const QrScanner = () => {
   const scannerRef = useRef<any>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    api.products.list().then((data) => {
-      setProducts((data as any[]).sort((a, b) => String(a.name).localeCompare(String(b.name))));
-    }).catch(() => {});
-  }, []);
+  // Server-side lookup (never pull the full 22k catalog into this page)
+  const searchProducts = async (q: string, limit = 30) => {
+    const query = q.trim();
+    if (query.length < 2) { setProducts([]); return []; }
+    setSearching(true);
+    try {
+      const res = await api.products.list({ search: query, limit });
+      setProducts(res as any[]);
+      return res as any[];
+    } catch {
+      toast.error("Search failed — check connection");
+      return [];
+    } finally {
+      setSearching(false);
+    }
+  };
 
   const findProduct = (searchVal: string) => {
     const lower = searchVal.toLowerCase();
@@ -60,7 +74,8 @@ const QrScanner = () => {
             const parsed = JSON.parse(decodedText);
             searchVal = parsed.id || parsed.batch || decodedText;
           } catch {}
-          const found = findProduct(searchVal);
+          const results = await searchProducts(searchVal, 10);
+          const found = results[0] ?? findProduct(searchVal);
           setProduct(found || null);
           if (found) toast.success("Product found: " + found.name);
           else toast.info("No product found for: " + decodedText);
@@ -82,7 +97,8 @@ const QrScanner = () => {
 
   const handleManualSearch = async () => {
     if (!manualSearch.trim()) return;
-    const found = findProduct(manualSearch.trim());
+    const results = await searchProducts(manualSearch.trim(), 20);
+    const found = results[0] ?? findProduct(manualSearch.trim());
     if (found) {
       setProduct(found);
       setScanResult(found.batch_number || found.id);
@@ -114,6 +130,7 @@ const QrScanner = () => {
   };
 
   const generateBulkQRs = async () => {
+    if (bulkSelected.size > 50) { toast.error("Max 50 at a time — print in batches"); return; }
     const map = new Map<string, string>();
     for (const id of bulkSelected) {
       const p = products.find((pr) => pr.id === id);
@@ -211,9 +228,19 @@ const QrScanner = () => {
           <Card>
             <CardHeader><CardTitle>Generate QR Code</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">Select a product to generate its QR code for labeling.</p>
+              <p className="text-sm text-muted-foreground">Search the catalog, then pick a product to generate its QR code.</p>
+              <div className="flex gap-2">
+                <Input placeholder="Type 2+ letters to search…" value={genQuery}
+                  onChange={(e) => { setGenQuery(e.target.value); searchProducts(e.target.value, 30); }}
+                  onKeyDown={(e) => e.key === "Enter" && searchProducts(genQuery, 30)} />
+                <Button onClick={() => searchProducts(genQuery, 30)} disabled={searching}><Search className="h-4 w-4" /></Button>
+              </div>
+              {searching && <p className="text-xs text-muted-foreground">Searching…</p>}
               <div className="grid gap-2 max-h-60 overflow-y-auto">
-                {products.map((p) => (
+                {products.length === 0 && !searching && (
+                  <p className="text-xs text-muted-foreground py-4 text-center">No results — search above (max 30 shown)</p>
+                )}
+                {products.slice(0, 30).map((p) => (
                   <button key={p.id} onClick={() => generateQR(p)}
                     className={`flex items-center justify-between p-3 rounded-lg border text-left transition-colors ${selectedProduct?.id === p.id ? "border-primary bg-accent" : "border-border hover:bg-accent/50"}`}>
                     <div>
@@ -245,16 +272,25 @@ const QrScanner = () => {
           <Card>
             <CardHeader><CardTitle>Bulk QR Code Generation & Print</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input placeholder="Search to select for bulk print…" value={bulkQuery}
+                  onChange={(e) => { setBulkQuery(e.target.value); searchProducts(e.target.value, 50); }}
+                  onKeyDown={(e) => e.key === "Enter" && searchProducts(bulkQuery, 50)} />
+                <Button onClick={() => searchProducts(bulkQuery, 50)} disabled={searching}><Search className="h-4 w-4" /></Button>
+              </div>
               <div className="flex items-center gap-2">
-                <Checkbox checked={bulkSelected.size === products.length}
+                <Checkbox checked={products.length > 0 && bulkSelected.size === products.length}
                   onCheckedChange={() => {
                     if (bulkSelected.size === products.length) setBulkSelected(new Set());
                     else setBulkSelected(new Set(products.map((p) => p.id)));
                   }} />
-                <span className="text-sm font-medium">Select All ({bulkSelected.size}/{products.length})</span>
+                <span className="text-sm font-medium">Select shown ({bulkSelected.size}/{products.length})</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                {products.map((p) => (
+                {products.length === 0 && !searching && (
+                  <p className="col-span-full text-xs text-muted-foreground py-4 text-center">Search above to pick items (max 50 shown)</p>
+                )}
+                {products.slice(0, 50).map((p) => (
                   <label key={p.id} className="flex items-center gap-2 p-2 border rounded cursor-pointer text-xs hover:bg-accent/50">
                     <Checkbox checked={bulkSelected.has(p.id)} onCheckedChange={() => toggleBulkSelect(p.id)} />
                     <span className="truncate">{p.name}</span>

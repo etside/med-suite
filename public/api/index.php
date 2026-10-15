@@ -909,8 +909,17 @@ try {
             if ($file['error'] !== UPLOAD_ERR_OK) {
                 api_error('Upload failed');
             }
-            $ext = pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'jpg';
-            $name = 'product_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . preg_replace('/[^a-z0-9]/i', '', $ext);
+            if (($file['size'] ?? 0) > 5 * 1024 * 1024) {
+                api_error('File too large (max 5MB)');
+            }
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($file['tmp_name']);
+            $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+            if (!isset($allowed[$mime])) {
+                api_error('Only JPG, PNG or WebP images allowed');
+            }
+            $ext = $allowed[$mime];
+            $name = 'product_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
             $dir = dirname(__DIR__) . '/uploads/products';
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);

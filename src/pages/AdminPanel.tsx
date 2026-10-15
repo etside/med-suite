@@ -11,9 +11,11 @@ const WHATSAPP_HELP = "https://wa.me/8801873722228?text=Hi%2C%20I%20need%20help%
 const AdminPanel = () => {
   const { isAdmin } = useAuth();
   const [stats, setStats] = useState({ users: 0, products: 0, orders: 0, lowStock: 0, revenue: 0, suppliers: 0, pending: 0 });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
+      setLoading(true);
       try {
         const [d, sales, orders] = await Promise.all([
           api.dashboard(),
@@ -30,7 +32,9 @@ const AdminPanel = () => {
           suppliers: d.supplier_count,
           pending: d.pending_approvals,
         });
-      } catch { /* ignore */ }
+      } catch { /* ignore */ } finally {
+        setLoading(false);
+      }
     };
     if (isAdmin) fetchStats();
   }, [isAdmin]);
@@ -40,12 +44,12 @@ const AdminPanel = () => {
   }
 
   const cards = [
-    { title: "Total Users", value: stats.users, icon: Users, color: "text-blue-600" },
-    { title: "Pending Approvals", value: stats.pending, icon: Clock, color: "text-amber-600" },
-    { title: "Products", value: stats.products, icon: Package, color: "text-primary" },
-    { title: "Total Orders", value: stats.orders, icon: ShoppingCart, color: "text-amber-600" },
-    { title: "Low Stock Items", value: stats.lowStock, icon: AlertTriangle, color: "text-destructive" },
-    { title: "POS Revenue", value: "৳" + stats.revenue.toLocaleString(), icon: TrendingUp, color: "text-emerald-600" },
+    { title: "Total Users", value: loading ? "…" : stats.users, icon: Users, color: "text-blue-600" },
+    { title: "Pending Approvals", value: loading ? "…" : stats.pending, icon: Clock, color: "text-amber-600" },
+    { title: "Products", value: loading ? "…" : stats.products, icon: Package, color: "text-primary" },
+    { title: "Total Orders", value: loading ? "…" : stats.orders, icon: ShoppingCart, color: "text-amber-600" },
+    { title: "Low Stock Items", value: loading ? "…" : stats.lowStock, icon: AlertTriangle, color: "text-destructive" },
+    { title: "POS Revenue", value: loading ? "…" : "৳" + stats.revenue.toLocaleString(), icon: TrendingUp, color: "text-emerald-600" },
   ];
 
   return (

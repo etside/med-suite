@@ -14,29 +14,52 @@ import { toast } from "sonner";
 const Purchases = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [newSupplier, setNewSupplier] = useState({ name: "", contact_person: "", phone: "", email: "", address: "" });
   const [newPO, setNewPO] = useState({ supplier_id: "", notes: "", items: [{ product_id: "", product_name: "", quantity: 1, unit_cost: 0 }] });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [productQuery, setProductQuery] = useState("");
+  const [productResults, setProductResults] = useState<any[]>([]);
+  const [searchingProducts, setSearchingProducts] = useState(false);
 
   const fetchAll = async () => {
+    setLoading(true);
     try {
-      const [po, sup, prod] = await Promise.all([
+      const [po, sup] = await Promise.all([
         api.purchaseOrders.list(),
         api.suppliers.list(),
-        api.products.list(),
       ]);
       setOrders(po as any[]);
       setSuppliers((sup as any[]).sort((a, b) => String(a.name).localeCompare(String(b.name))));
-      setProducts((prod as any[]).sort((a, b) => String(a.name).localeCompare(String(b.name))));
     } catch (e: unknown) {
       toast.error("Failed to load purchases: " + (e instanceof Error ? e.message : "Unknown error"));
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => { fetchAll(); }, []);
+
+  // Server-side product search for the PO picker (never fetch the full 22k catalog here)
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const q = productQuery.trim();
+    if (q.length < 2) { setProductResults([]); return; }
+    setSearchingProducts(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await api.products.list({ search: q, limit: 50 });
+        setProductResults(res as any[]);
+      } catch {
+        setProductResults([]);
+      } finally {
+        setSearchingProducts(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [productQuery, dialogOpen]);
 
   const addItem = () => setNewPO((po) => ({ ...po, items: [...po.items, { product_id: "", product_name: "", quantity: 1, unit_cost: 0 }] }));
   const removeItem = (i: number) => setNewPO((po) => ({ ...po, items: po.items.filter((_, idx) => idx !== i) }));
@@ -45,7 +68,7 @@ const Purchases = () => {
       const items = [...po.items];
       items[i] = { ...items[i], [key]: val };
       if (key === "product_id") {
-        const p = products.find((pr) => pr.id === val);
+        const p = productResults.find((pr) => pr.id === val);
         if (p) { items[i].product_name = p.name; items[i].unit_cost = Number(p.price); }
       }
       return { ...po, items };
@@ -157,7 +180,11 @@ const Purchases = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((po) => (
+              {loading ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading purchase orders…</TableCell></TableRow>
+              ) : orders.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No purchase orders yet</TableCell></TableRow>
+              ) : orders.map((po) => (
                 <TableRow key={po.id}>
                   <TableCell className="font-mono font-medium text-sm">{po.po_number}</TableCell>
                   <TableCell>{po.supplier_name || "—"}</TableCell>
@@ -196,13 +223,21 @@ const Purchases = () => {
             </div>
             <div className="space-y-2">
               <Label>Items</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Find product (type 2+ letters)</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="h-9 text-xs pl-8" placeholder="Search 22k+ catalog…" value={productQuery} onChange={(e) => setProductQuery(e.target.value)} />
+                </div>
+                {searchingProducts && <p className="text-xs text-muted-foreground">Searching…</p>}
+              </div>
               {newPO.items.map((item, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-5">
                     <Select value={item.product_id} onValueChange={(v) => updateItem(i, "product_id", v)}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Product" /></SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={productResults.length ? "Pick from results" : "Search above first"} /></SelectTrigger>
                       <SelectContent>
-                        {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        {productResults.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} — ৳{Number(p.price).toFixed(0)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

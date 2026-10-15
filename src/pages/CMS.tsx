@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Edit, Eye } from "lucide-react";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 interface CMSContent {
   id: string;
@@ -24,20 +26,38 @@ interface CMSContent {
 }
 
 const CMS = () => {
-  const [contents, setContents] = useState<CMSContent[]>([
-    {
-      id: "1",
-      title: "Welcome to Medsuite-eT",
-      slug: "welcome-to-medsuite",
-      content: "Get started with your pharmacy management system...",
-      category: "blog",
-      status: "published",
-      author: "Admin",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      excerpt: "Introduction to Medsuite-eT",
-    },
-  ]);
+  const [contents, setContents] = useState<CMSContent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchContents = async () => {
+    setLoading(true);
+    try {
+      const [pub, draft] = await Promise.all([
+        api.cms.list({ status: "published" }).catch(() => []),
+        api.cms.list({ status: "draft" }).catch(() => []),
+      ]);
+      const map = (r: any): CMSContent => ({
+        id: String(r.id),
+        title: String(r.title || "Untitled"),
+        slug: String(r.slug || ""),
+        content: String(r.content || ""),
+        category: (r.category as any) || "announcement",
+        status: (r.status as any) || "draft",
+        author: "Admin",
+        createdAt: r.created_at ? new Date(r.created_at) : new Date(),
+        updatedAt: new Date(),
+        excerpt: String(r.excerpt || ""),
+      });
+      setContents([...(pub as any[]).map(map), ...(draft as any[]).map(map)]);
+    } catch {
+      toast.error("Failed to load content");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchContents(); }, []);
 
   const [activeTab, setActiveTab] = useState("blog");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -51,31 +71,33 @@ const CMS = () => {
     excerpt: "",
   });
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (formData.title && formData.content) {
-      const newContent: CMSContent = {
-        id: Date.now().toString(),
-        title: formData.title,
-        slug: formData.slug || formData.title.toLowerCase().replace(/\s/g, "-"),
-        content: formData.content,
-        category: (formData.category as any) || "blog",
-        status: (formData.status as any) || "draft",
-        author: formData.author || "Admin",
-        excerpt: formData.excerpt || "",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      if (editingId) {
-        setContents(
-          contents.map((c) =>
-            c.id === editingId ? { ...newContent, id: editingId } : c
-          )
-        );
-        setEditingId(null);
-      } else {
-        setContents([...contents, newContent]);
+      setSaving(true);
+      try {
+        const payload = {
+          title: formData.title,
+          slug: formData.slug || formData.title.toLowerCase().replace(/\s+/g, "-"),
+          content: formData.content,
+          category: (formData.category as any) || "blog",
+          status: (formData.status as any) || "draft",
+          excerpt: formData.excerpt || "",
+        };
+        if (editingId) {
+          await api.cms.update(editingId, payload);
+          toast.success("Content updated");
+          setEditingId(null);
+        } else {
+          await api.cms.create(payload);
+          toast.success("Content published");
+        }
+        await fetchContents();
+      } catch (e: any) {
+        toast.error("Save failed: " + (e.message || ""));
+        setSaving(false);
+        return;
       }
+      setSaving(false);
 
       setFormData({
         title: "",
@@ -95,8 +117,14 @@ const CMS = () => {
     setActiveTab("editor");
   };
 
-  const handleDelete = (id: string) => {
-    setContents(contents.filter((c) => c.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      await api.cms.delete(id);
+      setContents(contents.filter((c) => c.id !== id));
+      toast.success("Content deleted");
+    } catch (e: any) {
+      toast.error("Delete failed: " + (e.message || ""));
+    }
   };
 
   const filteredContents = contents.filter((c) => c.category === activeTab);
@@ -154,7 +182,11 @@ const CMS = () => {
               animate="visible"
               className="grid gap-4"
             >
-              {filteredContents.length === 0 ? (
+              {loading ? (
+                <Card className="p-8 text-center text-muted-foreground">
+                  Loading content…
+                </Card>
+              ) : filteredContents.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   No {category}s yet. Create one to get started!
                 </Card>
@@ -339,9 +371,10 @@ const CMS = () => {
                 </Button>
                 <Button
                   onClick={handleAdd}
+                  disabled={saving}
                   className="bg-gradient-to-r from-emerald-600 to-cyan-600"
                 >
-                  {editingId ? "Update Content" : "Create Content"}
+                  {saving ? "Saving…" : editingId ? "Update Content" : "Create Content"}
                 </Button>
               </div>
             </CardContent>

@@ -19,9 +19,11 @@ const SettingsPage = () => {
     license_number: "", bkash_number: "", nagad_number: "", logo_url: "", shop_enabled: false,
   });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [settingsId, setSettingsId] = useState<string | null>(null);
 
   useEffect(() => {
+    setLoading(true);
     api.settings.get().then((data) => {
       if (data) {
         setSettingsId(String(data.id));
@@ -37,7 +39,7 @@ const SettingsPage = () => {
           shop_enabled: !!data.shop_enabled,
         });
       }
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const handleSave = async () => {
@@ -67,6 +69,10 @@ const SettingsPage = () => {
         <p className="text-muted-foreground">{t("settings_subtitle")}</p>
       </div>
 
+      {loading ? (
+        <p className="text-muted-foreground py-8 text-center">Loading settings…</p>
+      ) : (
+      <>
       {isSuperAdmin && (
         <Card className="border-primary/30">
           <CardHeader>
@@ -122,6 +128,8 @@ const SettingsPage = () => {
       </Card>
 
       <Button onClick={handleSave} disabled={saving} size="lg">{saving ? "Saving..." : t("save")}</Button>
+      </>
+      )}
     </div>
   );
 };
