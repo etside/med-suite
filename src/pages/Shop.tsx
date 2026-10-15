@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Search, Plus, Minus, Trash2, ArrowRight, Store } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { canonicalCategory, categoryLabel } from "@/data/categories";
+import ProductImage from "@/components/ProductImage";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -61,39 +62,55 @@ const Shop = () => {
   const navigate = useNavigate();
   const { cart, addToCart, updateQty, removeItem } = useCart();
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [categories, setCategories] = useState<{ id: string; count: number; label: string }[]>([]);
   const [shopEnabled, setShopEnabled] = useState<boolean | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(48);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 48;
+
+  // Debounce search box → server query at most every 300ms.
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
+  const loadPage = (offset: number, append: boolean) => {
+    if (append) setLoadingMore(true); else setLoadingProducts(true);
+    Promise.all([
+      api.products.list({ category: activeCategory || undefined, search: search || undefined, limit: PAGE_SIZE, offset }),
+      api.products.count({ category: activeCategory || undefined, search: search || undefined }),
+    ])
+      .then(([rows, count]) => {
+        setProducts((prev) => (append ? [...prev, ...(rows as any[])] : (rows as any[])));
+        setTotal(count);
+      })
+      .catch(() => {})
+      .finally(() => { setLoadingProducts(false); setLoadingMore(false); });
+  };
 
   useEffect(() => {
-    // Check if shop is enabled
-    api.settings.get().then((data) => {
-      setShopEnabled(!!data?.shop_enabled);
-    }).catch(() => setShopEnabled(false));
-    setLoadingProducts(true);
-    api.products.list().then((data) => {
-      setProducts((data as any[]).sort((a, b) => String(a.name).localeCompare(String(b.name))));
-    }).catch(() => {}).finally(() => setLoadingProducts(false));
+    api.settings.get().then((data) => setShopEnabled(!!data?.shop_enabled)).catch(() => setShopEnabled(false));
+    api.products.categoryCounts()
+      .then((rows) => setCategories(rows.slice(0, 18).map((r) => ({ id: r.id, count: r.count, label: categoryLabel(r.id) }))))
+      .catch(() => {});
   }, []);
 
-  useEffect(() => { setVisibleCount(48); }, [search, activeCategory]);
+  useEffect(() => { loadPage(0, false); }, [search, activeCategory]);
 
-  // Realtime: refetch when tab regains focus so products/services never look stale
+  // Realtime: refetch first page when tab regains focus so products never look stale.
   useEffect(() => {
-    const onFocus = () => {
-      api.products.list()
-        .then((data) => setProducts((data as any[]).sort((a, b) => String(a.name).localeCompare(String(b.name)))))
-        .catch(() => {});
-    };
+    const onFocus = () => { if (document.visibilityState === "visible") loadPage(0, false); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     return () => {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
     };
-  }, []);
+  }, [search, activeCategory]);
 
   if (shopEnabled === null) {
     return (
@@ -113,35 +130,8 @@ const Shop = () => {
     );
   }
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const active = canonicalCategory(activeCategory);
-    return products.filter((p) => {
-      const matchSearch = !q ||
-        p.name.toLowerCase().includes(q) ||
-        (p.generic_name || "").toLowerCase().includes(q) ||
-        (p.name_bn || "").includes(search.trim());
-      const matchCat = !active || canonicalCategory(p.category) === active;
-      return matchSearch && matchCat;
-    });
-  }, [products, search, activeCategory]);
-
-  const dynamicCategories = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const p of products) {
-      const c = canonicalCategory(p.category) || "uncategorized";
-      counts.set(c, (counts.get(c) ?? 0) + 1);
-    }
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 18)
-      .map(([id, count]) => ({ id, count, label: categoryLabel(id) }));
-  }, [products]);
-
-  const visible = useMemo(
-    () => filtered.slice(0, visibleCount),
-    [filtered, visibleCount]
-  );
+  const visible = products;
+  const active = canonicalCategory(activeCategory);
 
   const cartTotal = cart.reduce((s, i) => s + Number(i.product.price) * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
@@ -209,15 +199,15 @@ const Shop = () => {
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder={t("prod_search")} className="pl-9 h-9 sm:h-10 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input placeholder={t("prod_search")} className="pl-9 h-9 sm:h-10 text-sm" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
       </div>
 
-      {/* Categories — derived from live data so filters always match */}
+      {/* Categories — counts from the server so filters always match live data */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
         <Button variant={!activeCategory ? "default" : "outline"} size="sm" className="shrink-0 text-[11px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3" onClick={() => setActiveCategory(null)}>{t("cat_all")}</Button>
-        {dynamicCategories.map((cat) => (
-          <Button key={cat.id} variant={canonicalCategory(activeCategory) === cat.id ? "default" : "outline"} size="sm" className="whitespace-nowrap shrink-0 text-[11px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3"
-            onClick={() => setActiveCategory(cat.id === canonicalCategory(activeCategory) ? null : cat.id)}>
+        {categories.map((cat) => (
+          <Button key={cat.id} variant={active === cat.id ? "default" : "outline"} size="sm" className="whitespace-nowrap shrink-0 text-[11px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3"
+            onClick={() => setActiveCategory(cat.id === active ? null : cat.id)}>
             {cat.label} <span className="ml-1 opacity-60">({cat.count})</span>
           </Button>
         ))}
@@ -235,15 +225,9 @@ const Shop = () => {
         {visible.map((product) => {
           const inCart = cart.find((i) => i.product.id === product.id);
           return (
-            <Card key={product.id} className="overflow-hidden flex flex-col">
+            <Card key={product.id} className="overflow-hidden flex flex-col" style={{ contentVisibility: "auto", containIntrinsicSize: "0 280px" }}>
               <div className="aspect-[4/3] overflow-hidden bg-muted">
-                {product.image_url ? (
-                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
-                    <Store className="h-6 w-6 sm:h-8 sm:w-8" />
-                  </div>
-                )}
+                <ProductImage src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
               </div>
               <CardContent className="p-1.5 sm:p-3 space-y-1 flex-1 flex flex-col">
                 <div className="flex-1 min-w-0">
@@ -282,15 +266,15 @@ const Shop = () => {
             </Card>
           );
         })}
-        {filtered.length === 0 && (
+        {visible.length === 0 && (
           <div className="col-span-full py-12 text-center text-muted-foreground">No products found</div>
         )}
       </div>
       )}
-      {!loadingProducts && visible.length < filtered.length && (
+      {!loadingProducts && visible.length < total && (
         <div className="flex justify-center pt-2">
-          <Button variant="outline" onClick={() => setVisibleCount((c) => c + 48)}>
-            Load more ({filtered.length - visible.length} remaining)
+          <Button variant="outline" disabled={loadingMore} onClick={() => loadPage(products.length, true)}>
+            {loadingMore ? "Loading…" : `Load more (${total - visible.length} remaining)`}
           </Button>
         </div>
       )}

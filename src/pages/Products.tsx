@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { ExcelImportExport } from "@/components/ExcelImportExport";
 import { BulkBarcodeDialog } from "@/components/BulkBarcodeDialog";
 import { UserManual } from "@/components/UserManual";
+import ProductImage from "@/components/ProductImage";
 import { BarcodeGenerator } from "@/components/BarcodeGenerator";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -23,8 +24,10 @@ const Products = () => {
   const { isStaff } = useAuth();
   const [searchParams] = useSearchParams();
   const categoryFilter = searchParams.get("category") || "";
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<any>(null);
@@ -33,15 +36,24 @@ const Products = () => {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 50;
 
+  // Debounce the search box so we query the server at most every 300ms.
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
   const fetchProducts = () => {
     setLoading(true);
-    api.products.list()
-      .then((data) => setProducts(data as any[]))
+    Promise.all([
+      api.products.list({ category: categoryFilter || undefined, search: search || undefined, limit: PAGE_SIZE, offset: page * PAGE_SIZE }),
+      api.products.count({ category: categoryFilter || undefined, search: search || undefined }),
+    ])
+      .then(([rows, count]) => { setProducts(rows as any[]); setTotal(count); })
       .catch((e: unknown) => toast.error("Failed to load products: " + (e instanceof Error ? e.message : "Unknown error")))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { fetchProducts(); }, [page, search, categoryFilter]);
 
   useEffect(() => { setPage(0); }, [search, categoryFilter]);
 
@@ -57,24 +69,9 @@ const Products = () => {
     setDeleteId(null);
   };
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return products.filter((p) => {
-      const matchSearch = !q ||
-        p.name.toLowerCase().includes(q) ||
-        (p.generic_name || "").toLowerCase().includes(q) ||
-        (p.batch_number || "").toLowerCase().includes(q);
-      const matchCategory = !categoryFilter || (p.category || "") === categoryFilter;
-      return matchSearch && matchCategory;
-    });
-  }, [products, search, categoryFilter]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
-  const paged = useMemo(
-    () => filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
-    [filtered, safePage]
-  );
+  const paged = products;
 
   const isExpiringSoon = (date: string | null) => {
     if (!date) return false;
@@ -112,10 +109,10 @@ const Products = () => {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>All Products ({filtered.length})</CardTitle>
+            <CardTitle>All Products ({total})</CardTitle>
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search medicines..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input placeholder="Search medicines..." className="pl-9" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
             </div>
           </div>
         </CardHeader>
@@ -142,11 +139,7 @@ const Products = () => {
               ) : paged.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    {p.image_url ? (
-                      <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded object-cover aspect-square" />
-                    ) : (
-                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-muted-foreground text-xs aspect-square">No img</div>
-                    )}
+                    <ProductImage src={p.image_url} alt={p.name} className="w-12 h-12 rounded object-cover aspect-square" />
                   </TableCell>
                   <TableCell className="font-medium">
                     {p.name}
@@ -189,7 +182,7 @@ const Products = () => {
             </TableBody>
           </Table>
           <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
-            <span className="text-muted-foreground">Showing {paged.length} of {filtered.length} — page {safePage + 1}/{pageCount}</span>
+            <span className="text-muted-foreground">Showing {paged.length} of {total} — page {safePage + 1}/{pageCount}</span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={safePage === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Prev</Button>
               <Button variant="outline" size="sm" disabled={safePage >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>Next</Button>

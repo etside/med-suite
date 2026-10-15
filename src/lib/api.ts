@@ -256,14 +256,33 @@ export const api = {
   },
 
   products: {
-    list: (query?: { category?: string; search?: string; limit?: number }) =>
+    list: (query?: { category?: string; excludeCategory?: string; search?: string; limit?: number; offset?: number; sort?: string }) =>
       request<{ data: Record<string, unknown>[] }>("products", {
         query: {
           ...(query?.category ? { category: query.category } : {}),
+          ...(query?.excludeCategory ? { exclude_category: query.excludeCategory } : {}),
           ...(query?.search ? { search: query.search } : {}),
+          ...(query?.sort ? { sort: query.sort } : {}),
           limit: String(query?.limit ?? 50000),
+          ...(query?.offset ? { offset: String(query.offset) } : {}),
         },
       }).then((r) => normalizeProducts(r.data as Record<string, unknown>[])),
+    count: (query?: { category?: string; excludeCategory?: string; search?: string }) =>
+      request<{ data: { total: number } }>("products_count", {
+        query: {
+          ...(query?.category ? { category: query.category } : {}),
+          ...(query?.excludeCategory ? { exclude_category: query.excludeCategory } : {}),
+          ...(query?.search ? { search: query.search } : {}),
+        },
+      }).then((r) => r.data.total),
+    inventoryStats: () =>
+      request<{ data: { total: number; low_stock: number; out_of_stock: number; expiring_soon: number } }>(
+        "inventory_stats"
+      ).then((r) => r.data),
+    categoryCounts: () =>
+      request<{ data: { id: string; count: number }[] }>("product_categories").then((r) => r.data),
+    stockByCategory: () =>
+      request<{ data: { category: string; stock: number }[] }>("stock_by_category").then((r) => r.data),
     get: (id: string) =>
       request<{ data: Record<string, unknown> }>("product", { query: { id } }).then((r) =>
         normalizeProduct(r.data)

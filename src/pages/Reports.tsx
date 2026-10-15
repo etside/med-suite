@@ -50,10 +50,10 @@ const Reports = () => {
     setLoading(true);
     let cancelled = false;
     try {
-      const [sales, orders, prods] = await Promise.all([
+      const [sales, orders, catStock] = await Promise.all([
         api.sales.list(),
         api.orders.list().catch(() => []),
-        api.products.list().catch(() => []),
+        api.products.stockByCategory().catch(() => []),
       ]);
       if (cancelled) return;
       const cutoff =
@@ -122,7 +122,7 @@ const Reports = () => {
       setTotalOrders(recentOrders.length);
 
       const byCat: Record<string, number> = {};
-      (prods as { category?: string; stock?: number }[]).forEach((p) => {
+      (catStock as { category?: string; stock?: number }[]).forEach((p) => {
         byCat[p.category || "Other"] = (byCat[p.category || "Other"] || 0) + Number(p.stock);
       });
       setCategoryData(Object.entries(byCat).map(([name, value]) => ({ name, value })));

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,34 +18,28 @@ const Inventory = () => {
   const [loading, setLoading] = useState(true);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [page, setPage] = useState(0);
+  const [stats, setStats] = useState({ total: 0, low_stock: 0, out_of_stock: 0, expiring_soon: 0 });
   const PAGE_SIZE = 50;
 
   const fetchProducts = () => {
     setLoading(true);
-    api.products.list()
-      .then((data) => {
-        const sorted = [...(data as any[])].sort((a, b) => Number(a.stock) - Number(b.stock));
-        setProducts(sorted);
-      })
+    Promise.all([
+      api.products.list({ limit: PAGE_SIZE, offset: page * PAGE_SIZE, sort: "stock_asc" }),
+      api.products.inventoryStats(),
+    ])
+      .then(([rows, s]) => { setProducts(rows as any[]); setStats(s); })
       .catch((e: unknown) => toast.error("Failed to load inventory: " + (e instanceof Error ? e.message : "Unknown error")))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { fetchProducts(); }, [page]);
 
-  const paged = useMemo(
-    () => products.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
-    [products, page]
-  );
-  const pageCount = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
+  const paged = products;
+  const pageCount = Math.max(1, Math.ceil(stats.total / PAGE_SIZE));
 
-  const lowStock = products.filter((i) => i.stock > 0 && i.stock < i.min_stock).length;
-  const outOfStock = products.filter((i) => i.stock === 0).length;
-  const expiringSoon = products.filter((i) => {
-    if (!i.expiry_date) return false;
-    const diff = new Date(i.expiry_date).getTime() - Date.now();
-    return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000;
-  }).length;
+  const lowStock = stats.low_stock;
+  const outOfStock = stats.out_of_stock;
+  const expiringSoon = stats.expiring_soon;
 
   const getExpiryStatus = (date: string | null) => {
     if (!date) return "none";
@@ -80,7 +74,7 @@ const Inventory = () => {
             <CardTitle className="text-sm font-medium">Total Items</CardTitle>
             <Package className="h-5 w-5 text-primary" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{products.length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -159,7 +153,7 @@ const Inventory = () => {
             </TableBody>
           </Table>
           <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
-            <span className="text-muted-foreground">Showing {paged.length} of {products.length} — page {page + 1}/{pageCount}</span>
+            <span className="text-muted-foreground">Showing {paged.length} of {stats.total} — page {page + 1}/{pageCount}</span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Prev</Button>
               <Button variant="outline" size="sm" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>Next</Button>

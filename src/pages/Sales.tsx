@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,8 @@ const Sales = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchingProducts, setSearchingProducts] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState(0);
   const [includeVat, setIncludeVat] = useState(false);
@@ -42,26 +44,49 @@ const Sales = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scanStreamRef = useRef<MediaStream | null>(null);
 
-  const fetchProducts = async () => {
-    try {
-      const data = await api.products.list();
-      setProducts((data as any[]).sort((a, b) => String(a.name).localeCompare(String(b.name))));
-    } catch { /* ignore */ }
-  };
+  // Debounce the search box → server query at most every 300ms.
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
 
-  useEffect(() => { fetchProducts(); }, []);
+  // Server-side product lookup: search text + medicine/service tab filter.
+  useEffect(() => {
+    setSearchingProducts(true);
+    const opts: { category?: string; excludeCategory?: string; search?: string } = {};
+    if (activeTab === "service") opts.category = "service";
+    else if (activeTab === "medicine") opts.excludeCategory = "service";
+    if (search) opts.search = search;
+    api.products.list({ ...opts, limit: 40 })
+      .then((data) => setProducts(data as any[]))
+      .catch(() => {})
+      .finally(() => setSearchingProducts(false));
+  }, [search, activeTab]);
+
+  // Latest lookup fn for the global scanner listeners (avoids stale closures).
+  const lookupRef = useRef<(code: string) => Promise<any>>(async () => null);
+  const addToCartRef = useRef<(product: any) => void>(() => {});
+  lookupRef.current = async (code: string) => {
+    try {
+      const rows = await api.products.list({ search: code, limit: 10 });
+      return (rows as any[]).find((p) => p.batch_number === code || String(p.id).startsWith(code)) || null;
+    } catch {
+      return null;
+    }
+  };
 
   // USB barcode scanner detection
   useEffect(() => {
     let buffer = "";
     let timer: any;
-    const handleKeyPress = (e: KeyboardEvent) => {
+    const handleKeyPress = async (e: KeyboardEvent) => {
       if (document.activeElement === searchRef.current) return;
       if (e.key === "Enter" && buffer.length > 3) {
-        const found = products.find((p) => p.batch_number === buffer || p.id.startsWith(buffer));
-        if (found) addToCart(found);
-        else toast.error("Product not found: " + buffer);
+        const code = buffer;
         buffer = "";
+        const found = await lookupRef.current(code);
+        if (found) addToCartRef.current(found);
+        else toast.error("Product not found: " + code);
         return;
       }
       if (e.key.length === 1) {
@@ -72,7 +97,7 @@ const Sales = () => {
     };
     window.addEventListener("keypress", handleKeyPress);
     return () => window.removeEventListener("keypress", handleKeyPress);
-  }, [products, cart]);
+  }, []);
 
   const startCameraScanner = async () => {
     setScannerOpen(true);
@@ -96,8 +121,8 @@ const Sales = () => {
             if (barcodes.length > 0) {
               for (const barcode of barcodes) {
                 const code = barcode.rawValue;
-                const found = products.find((p) => p.batch_number === code || p.id.startsWith(code));
-                if (found) { addToCart(found); toast.success(`Scanned: ${found.name}`); }
+                const found = await lookupRef.current(code);
+                if (found) { addToCartRef.current(found); toast.success(`Scanned: ${found.name}`); }
                 else toast.error("Product not found: " + code);
               }
               stopScanner();
@@ -124,18 +149,7 @@ const Sales = () => {
     setScannerOpen(false);
   };
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return products.filter((p) => {
-      const matchSearch = !q ||
-        p.name.toLowerCase().includes(q) ||
-        (p.generic_name || "").toLowerCase().includes(q) ||
-        (p.batch_number || "").toLowerCase().includes(q);
-      const cat = String(p.category || "").trim().toLowerCase();
-      const matchTab = activeTab === "all" || (activeTab === "service" ? cat === "service" : cat !== "service");
-      return matchSearch && matchTab;
-    });
-  }, [products, search, activeTab]);
+  const filtered = products;
 
   const addToCart = (product: any) => {
     const existing = cart.find((i) => i.id === product.id);
@@ -147,6 +161,7 @@ const Sales = () => {
       setCart([...cart, { id: product.id, name: product.name, price: Number(product.price), qty: 1, category: product.category }]);
     }
   };
+  addToCartRef.current = addToCart;
 
   const updateQty = (id: string, delta: number) => {
     setCart(cart.map((i) => (i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)).filter((i) => i.qty > 0));
@@ -252,11 +267,17 @@ const Sales = () => {
         <div className="lg:col-span-3 space-y-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input ref={searchRef} placeholder="Search product or barcode..." className="pl-9 h-9 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input ref={searchRef} placeholder="Search product or barcode..." className="pl-9 h-9 text-sm" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
           </div>
           <p className="text-[10px] text-muted-foreground">💡 USB scanner auto-detects. Tap camera button for mobile scanning.</p>
           <div className="grid gap-1.5 grid-cols-1 sm:grid-cols-2 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-1">
-            {filtered.slice(0, 40).map((p) => (
+            {searchingProducts ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-14 rounded-lg bg-muted animate-pulse" />
+              ))
+            ) : filtered.length === 0 ? (
+              <p className="col-span-full py-8 text-center text-xs text-muted-foreground">No products found</p>
+            ) : filtered.map((p) => (
               <button key={p.id} onClick={() => addToCart(p)}
                 className="flex items-center justify-between p-2.5 rounded-lg border border-border hover:bg-accent/50 text-left transition-colors disabled:opacity-50"
                 disabled={p.category !== "service" && p.stock <= 0}>

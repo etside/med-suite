@@ -330,16 +330,29 @@ try {
                 $sql = 'SELECT * FROM products WHERE 1=1';
                 $params = [];
                 if ($category) {
-                    $sql .= ' AND category = ?';
+                    $sql .= ' AND LOWER(TRIM(category)) = LOWER(?)';
                     $params[] = $category;
                 }
+                if (!empty($_GET['exclude_category'])) {
+                    $sql .= ' AND (category IS NULL OR LOWER(TRIM(category)) <> LOWER(?))';
+                    $params[] = $_GET['exclude_category'];
+                }
                 if ($search) {
-                    $sql .= ' AND (name LIKE ? OR generic_name LIKE ?)';
+                    $sql .= ' AND (name LIKE ? OR generic_name LIKE ? OR name_bn LIKE ? OR batch_number LIKE ?)';
+                    $params[] = "%$search%";
+                    $params[] = "%$search%";
                     $params[] = "%$search%";
                     $params[] = "%$search%";
                 }
                 $limit = min(50000, max(1, (int) ($_GET['limit'] ?? 50000)));
-                $sql .= ' ORDER BY name ASC LIMIT ' . $limit;
+                $offset = min(50000, max(0, (int) ($_GET['offset'] ?? 0)));
+                $order = 'name ASC';
+                if (($_GET['sort'] ?? '') === 'stock_asc') {
+                    $order = 'stock ASC, name ASC';
+                } elseif (($_GET['sort'] ?? '') === 'stock_desc') {
+                    $order = 'stock DESC, name ASC';
+                }
+                $sql .= ' ORDER BY ' . $order . ' LIMIT ' . $limit . ' OFFSET ' . $offset;
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($params);
                 api_json(['data' => $stmt->fetchAll()]);
@@ -395,6 +408,62 @@ try {
                 api_json(['data' => ['id' => $id]], 201);
             }
             api_error('Method not allowed', 405);
+
+        case 'products_count':
+            // Lightweight total for server-driven pagination. Same filters as products.
+            // GET /api/index.php?action=products_count&category=X&search=Y
+            $sql = 'SELECT COUNT(*) FROM products WHERE 1=1';
+            $params = [];
+            if (!empty($_GET['category'])) {
+                $sql .= ' AND LOWER(TRIM(category)) = LOWER(?)';
+                $params[] = $_GET['category'];
+            }
+            if (!empty($_GET['exclude_category'])) {
+                $sql .= ' AND (category IS NULL OR LOWER(TRIM(category)) <> LOWER(?))';
+                $params[] = $_GET['exclude_category'];
+            }
+            if (!empty($_GET['search'])) {
+                $sql .= ' AND (name LIKE ? OR generic_name LIKE ? OR name_bn LIKE ? OR batch_number LIKE ?)';
+                $params[] = '%' . $_GET['search'] . '%';
+                $params[] = '%' . $_GET['search'] . '%';
+                $params[] = '%' . $_GET['search'] . '%';
+                $params[] = '%' . $_GET['search'] . '%';
+            }
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            api_json(['data' => ['total' => (int) $stmt->fetchColumn()]]);
+
+        case 'product_categories':
+            // Canonical (lowercased) category names with live counts, for the Shop pills.
+            $stmt = $pdo->query(
+                'SELECT LOWER(TRIM(category)) AS id, COUNT(*) AS count FROM products
+                 WHERE category IS NOT NULL AND TRIM(category) <> \'\'
+                 GROUP BY LOWER(TRIM(category)) ORDER BY count DESC'
+            );
+            api_json(['data' => $stmt->fetchAll()]);
+
+        case 'stock_by_category':
+            // Aggregated stock per category (for Reports pie chart) — no row transfer.
+            $stmt = $pdo->query(
+                'SELECT COALESCE(NULLIF(TRIM(category), \'\'), \'Other\') AS category, SUM(stock) AS stock
+                 FROM products GROUP BY COALESCE(NULLIF(TRIM(category), \'\'), \'Other\')'
+            );
+            api_json(['data' => $stmt->fetchAll()]);
+
+        case 'inventory_stats':
+            // Global stock summary so the Inventory page can page server-side.
+            $today = date('Y-m-d');
+            $soon = date('Y-m-d', strtotime('+30 days'));
+            api_json(['data' => [
+                'total' => (int) $pdo->query('SELECT COUNT(*) FROM products')->fetchColumn(),
+                'low_stock' => (int) $pdo->query('SELECT COUNT(*) FROM products WHERE stock > 0 AND stock < min_stock')->fetchColumn(),
+                'out_of_stock' => (int) $pdo->query('SELECT COUNT(*) FROM products WHERE stock <= 0')->fetchColumn(),
+                'expiring_soon' => (int) (function () use ($pdo, $today, $soon) {
+                    $st = $pdo->prepare('SELECT COUNT(*) FROM products WHERE expiry_date IS NOT NULL AND expiry_date <= ? AND expiry_date > ?');
+                    $st->execute([$soon, $today]);
+                    return $st->fetchColumn();
+                })(),
+            ]]);
 
         case 'product':
             $id = $_GET['id'] ?? null;
@@ -879,6 +948,7 @@ try {
                 'data' => [
                     'product_count' => (int) $pdo->query('SELECT COUNT(*) FROM products')->fetchColumn(),
                     'low_stock' => (int) $pdo->query('SELECT COUNT(*) FROM products WHERE stock < 20 AND stock > 0')->fetchColumn(),
+                    'out_of_stock' => (int) $pdo->query('SELECT COUNT(*) FROM products WHERE stock <= 0')->fetchColumn(),
                     'pending_orders' => (int) $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn(),
                     'expiring_soon' => (int) (function () use ($pdo) {
                         $st = $pdo->prepare('SELECT COUNT(*) FROM products WHERE expiry_date <= ? AND expiry_date > ?');
