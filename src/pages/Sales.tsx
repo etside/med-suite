@@ -131,7 +131,8 @@ const Sales = () => {
         p.name.toLowerCase().includes(q) ||
         (p.generic_name || "").toLowerCase().includes(q) ||
         (p.batch_number || "").toLowerCase().includes(q);
-      const matchTab = activeTab === "all" || (activeTab === "service" ? p.category === "service" : p.category !== "service");
+      const cat = String(p.category || "").trim().toLowerCase();
+      const matchTab = activeTab === "all" || (activeTab === "service" ? cat === "service" : cat !== "service");
       return matchSearch && matchTab;
     });
   }, [products, search, activeTab]);

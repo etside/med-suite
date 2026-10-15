@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Search, Plus, Minus, Trash2, ArrowRight, Store } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { categories } from "@/data/categories";
+import { canonicalCategory, categoryLabel } from "@/data/categories";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -80,6 +80,21 @@ const Shop = () => {
 
   useEffect(() => { setVisibleCount(48); }, [search, activeCategory]);
 
+  // Realtime: refetch when tab regains focus so products/services never look stale
+  useEffect(() => {
+    const onFocus = () => {
+      api.products.list()
+        .then((data) => setProducts((data as any[]).sort((a, b) => String(a.name).localeCompare(String(b.name)))))
+        .catch(() => {});
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, []);
+
   if (shopEnabled === null) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -100,15 +115,28 @@ const Shop = () => {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const active = canonicalCategory(activeCategory);
     return products.filter((p) => {
       const matchSearch = !q ||
         p.name.toLowerCase().includes(q) ||
         (p.generic_name || "").toLowerCase().includes(q) ||
         (p.name_bn || "").includes(search.trim());
-      const matchCat = !activeCategory || p.category === activeCategory;
+      const matchCat = !active || canonicalCategory(p.category) === active;
       return matchSearch && matchCat;
     });
   }, [products, search, activeCategory]);
+
+  const dynamicCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of products) {
+      const c = canonicalCategory(p.category) || "uncategorized";
+      counts.set(c, (counts.get(c) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 18)
+      .map(([id, count]) => ({ id, count, label: categoryLabel(id) }));
+  }, [products]);
 
   const visible = useMemo(
     () => filtered.slice(0, visibleCount),
@@ -184,13 +212,13 @@ const Shop = () => {
         <Input placeholder={t("prod_search")} className="pl-9 h-9 sm:h-10 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      {/* Categories */}
+      {/* Categories — derived from live data so filters always match */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
         <Button variant={!activeCategory ? "default" : "outline"} size="sm" className="shrink-0 text-[11px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3" onClick={() => setActiveCategory(null)}>{t("cat_all")}</Button>
-        {categories.map((cat) => (
-          <Button key={cat.id} variant={activeCategory === cat.id ? "default" : "outline"} size="sm" className="whitespace-nowrap shrink-0 text-[11px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3"
-            onClick={() => setActiveCategory(cat.id === activeCategory ? null : cat.id)}>
-            <cat.icon className="mr-1 h-3 w-3" />{t(cat.nameKey as any)}
+        {dynamicCategories.map((cat) => (
+          <Button key={cat.id} variant={canonicalCategory(activeCategory) === cat.id ? "default" : "outline"} size="sm" className="whitespace-nowrap shrink-0 text-[11px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3"
+            onClick={() => setActiveCategory(cat.id === canonicalCategory(activeCategory) ? null : cat.id)}>
+            {cat.label} <span className="ml-1 opacity-60">({cat.count})</span>
           </Button>
         ))}
       </div>
