@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,13 +124,17 @@ const Sales = () => {
     setScannerOpen(false);
   };
 
-  const filtered = products.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.generic_name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.batch_number || "").toLowerCase().includes(search.toLowerCase());
-    const matchTab = activeTab === "all" || (activeTab === "service" ? p.category === "service" : p.category !== "service");
-    return matchSearch && matchTab;
-  });
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      const matchSearch = !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.generic_name || "").toLowerCase().includes(q) ||
+        (p.batch_number || "").toLowerCase().includes(q);
+      const matchTab = activeTab === "all" || (activeTab === "service" ? p.category === "service" : p.category !== "service");
+      return matchSearch && matchTab;
+    });
+  }, [products, search, activeTab]);
 
   const addToCart = (product: any) => {
     const existing = cart.find((i) => i.id === product.id);

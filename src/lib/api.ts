@@ -98,17 +98,47 @@ async function request<T>(
     body = JSON.stringify(options.body);
   }
 
-  const res = await fetch(url.toString(), {
-    method: options.method || "GET",
-    headers,
-    body,
-  });
+  const controller = new AbortController();
+  const timeoutMs = 15000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.error) {
-    throw new ApiError(json.error || res.statusText || "Request failed", res.status);
+  const isGet = !options.method || options.method.toUpperCase() === "GET";
+  let lastErr: unknown = null;
+
+  for (let attempt = 0; attempt < (isGet ? 2 : 1); attempt++) {
+    try {
+      const res = await fetch(url.toString(), {
+        method: options.method || "GET",
+        headers,
+        body,
+        signal: controller.signal,
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || (json as { error?: string }).error) {
+        throw new ApiError(
+          (json as { error?: string }).error || res.statusText || "Request failed",
+          res.status
+        );
+      }
+      clearTimeout(timeout);
+      return json as T;
+    } catch (e) {
+      lastErr = e;
+      if (e instanceof ApiError) throw e;
+      // AbortError on final attempt -> friendly message
+      if (attempt === (isGet ? 1 : 0)) {
+        clearTimeout(timeout);
+        if (e instanceof DOMException && e.name === "AbortError") {
+          throw new ApiError("Request timed out. Check connection and retry.", 408);
+        }
+        throw e instanceof Error ? e : new Error("Request failed");
+      }
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
   }
-  return json as T;
+  clearTimeout(timeout);
+  throw (lastErr instanceof Error ? lastErr : new Error("Request failed"));
 }
 
 export const api = {

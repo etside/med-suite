@@ -258,6 +258,7 @@ jobs:
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
           rsync -avz --delete \
             --exclude 'api/config.php' \
+            --exclude 'uploads/' \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
             dist/ "$VPS_USER@$VPS_HOST:$VPS_PATH/"
           rm -f ~/.ssh/deploy_key
@@ -280,11 +281,16 @@ jobs:
       - name: Verify live health
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
+          LIVE_URL: https://med-suite.shop
         run: |
           for i in 1 2 3 4 5; do
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "http://$VPS_HOST/api/index.php?action=health" || true)
-            echo "health check $i: HTTP $code"
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$LIVE_URL/api/index.php?action=health" || true)
+            echo "health check $i ($LIVE_URL): HTTP $code"
             [ "$code" = "200" ] && exit 0
+            # fallback: direct IP with Host header (nginx vhost)
+            code_ip=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -H "Host: med-suite.shop" "http://$VPS_HOST/api/index.php?action=health" || true)
+            echo "health check $i (IP+Host): HTTP $code_ip"
+            [ "$code_ip" = "200" ] && exit 0
             sleep 10
           done
           echo "ERROR: API health check failed"

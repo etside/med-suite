@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,18 +25,25 @@ const Products = () => {
   const categoryFilter = searchParams.get("category") || "";
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   const fetchProducts = () => {
+    setLoading(true);
     api.products.list()
       .then((data) => setProducts(data as any[]))
-      .catch((e: unknown) => toast.error("Failed to load products: " + (e instanceof Error ? e.message : "Unknown error")));
+      .catch((e: unknown) => toast.error("Failed to load products: " + (e instanceof Error ? e.message : "Unknown error")))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchProducts(); }, []);
+
+  useEffect(() => { setPage(0); }, [search, categoryFilter]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -50,13 +57,24 @@ const Products = () => {
     setDeleteId(null);
   };
 
-  const filtered = products.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.generic_name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.batch_number || "").toLowerCase().includes(search.toLowerCase());
-    const matchCategory = !categoryFilter || (p.category || "") === categoryFilter;
-    return matchSearch && matchCategory;
-  });
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      const matchSearch = !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.generic_name || "").toLowerCase().includes(q) ||
+        (p.batch_number || "").toLowerCase().includes(q);
+      const matchCategory = !categoryFilter || (p.category || "") === categoryFilter;
+      return matchSearch && matchCategory;
+    });
+  }, [products, search, categoryFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const paged = useMemo(
+    () => filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [filtered, safePage]
+  );
 
   const isExpiringSoon = (date: string | null) => {
     if (!date) return false;
@@ -117,7 +135,11 @@ const Products = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((p) => (
+              {loading ? (
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading products…</TableCell></TableRow>
+              ) : paged.length === 0 ? (
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No products found</TableCell></TableRow>
+              ) : paged.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
                     {p.image_url ? (
@@ -166,6 +188,13 @@ const Products = () => {
               ))}
             </TableBody>
           </Table>
+          <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
+            <span className="text-muted-foreground">Showing {paged.length} of {filtered.length} — page {safePage + 1}/{pageCount}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" disabled={safePage === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Prev</Button>
+              <Button variant="outline" size="sm" disabled={safePage >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>Next</Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

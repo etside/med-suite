@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,18 +15,29 @@ import { toast } from "sonner";
 const Inventory = () => {
   const { isStaff } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   const fetchProducts = () => {
+    setLoading(true);
     api.products.list()
       .then((data) => {
         const sorted = [...(data as any[])].sort((a, b) => Number(a.stock) - Number(b.stock));
         setProducts(sorted);
       })
-      .catch((e: unknown) => toast.error("Failed to load inventory: " + (e instanceof Error ? e.message : "Unknown error")));
+      .catch((e: unknown) => toast.error("Failed to load inventory: " + (e instanceof Error ? e.message : "Unknown error")))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchProducts(); }, []);
+
+  const paged = useMemo(
+    () => products.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    [products, page]
+  );
+  const pageCount = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
 
   const lowStock = products.filter((i) => i.stock > 0 && i.stock < i.min_stock).length;
   const outOfStock = products.filter((i) => i.stock === 0).length;
@@ -112,7 +123,11 @@ const Inventory = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((item) => {
+              {loading ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading inventory…</TableCell></TableRow>
+              ) : paged.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No items</TableCell></TableRow>
+              ) : paged.map((item) => {
                 const stockStatus = item.stock === 0 ? "out" : item.stock < item.min_stock ? "low" : "ok";
                 const expiryStatus = getExpiryStatus(item.expiry_date);
                 return (
@@ -143,6 +158,13 @@ const Inventory = () => {
               })}
             </TableBody>
           </Table>
+          <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
+            <span className="text-muted-foreground">Showing {paged.length} of {products.length} — page {page + 1}/{pageCount}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Prev</Button>
+              <Button variant="outline" size="sm" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>Next</Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

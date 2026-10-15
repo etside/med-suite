@@ -40,7 +40,18 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 import { AnimatedOutlet } from "@/components/AnimatedRoutes";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      gcTime: 5 * 60_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+    },
+    mutations: { retry: 0 },
+  },
+});
 
 /** Simple loading spinner used as Suspense fallback for lazy-loaded routes. */
 const PageLoading = () => (
