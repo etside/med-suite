@@ -61,8 +61,8 @@ export function AppSidebar() {
         ...(isAdmin
           ? [
               { title: t("nav_user_mgmt"), icon: Users, href: "/admin/users" },
-              { title: "Customer Ledger", icon: BookUser, href: "/admin/customers" },
-              { title: "Content Manager", icon: FileText, href: "/admin/cms" },
+              { title: t("nav_customer_ledger"), icon: BookUser, href: "/admin/customers" },
+              { title: t("nav_cms"), icon: FileText, href: "/admin/cms" },
               { title: t("nav_admin"), icon: Shield, href: "/admin" },
               { title: t("nav_settings"), icon: Settings, href: "/settings" },
             ]
@@ -223,7 +223,7 @@ export function AppSidebar() {
             size="icon"
             className="h-7 w-7 text-white/50 hover:text-white hover:bg-white/10"
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            title={resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
+            title={resolvedTheme === "dark" ? t("light_mode") : t("dark_mode")}
           >
             {resolvedTheme === "dark" ? (
               <Sun className="h-3.5 w-3.5" />

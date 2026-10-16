@@ -10,10 +10,12 @@ import { ExcelImportExport } from "@/components/ExcelImportExport";
 import { UserManual } from "@/components/UserManual";
 import { BarcodeGenerator } from "@/components/BarcodeGenerator";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
 const Inventory = () => {
   const { isStaff } = useAuth();
+  const { t } = useLanguage();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
@@ -53,8 +55,8 @@ const Inventory = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Inventory</h1>
-          <p className="text-muted-foreground">Stock levels, expiry alerts & barcode management</p>
+          <h1 className="text-2xl font-bold text-foreground">{t("inv_title")}</h1>
+          <p className="text-muted-foreground">{t("inv_subtitle")}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <UserManual page="inventory" />
@@ -62,7 +64,7 @@ const Inventory = () => {
             <>
               <ExcelImportExport onImported={fetchProducts} />
               <Button variant="outline" size="sm" onClick={() => setBarcodeOpen(true)}>
-                <Barcode className="mr-1 h-3.5 w-3.5" /> Print Barcodes
+                <Barcode className="mr-1 h-3.5 w-3.5" /> {t("inv_print_barcodes")}
               </Button>
             </>
           )}
@@ -71,28 +73,28 @@ const Inventory = () => {
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("inv_total")}</CardTitle>
             <Package className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("inv_low")}</CardTitle>
             <TrendingDown className="h-5 w-5 text-amber-500" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold text-amber-600">{lowStock}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("inv_out")}</CardTitle>
             <AlertTriangle className="h-5 w-5 text-destructive" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold text-destructive">{outOfStock}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("inv_expiring")}</CardTitle>
             <Clock className="h-5 w-5 text-amber-500" />
           </CardHeader>
           <CardContent><div className="text-2xl font-bold text-amber-600">{expiringSoon}</div></CardContent>
@@ -100,27 +102,27 @@ const Inventory = () => {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Stock Overview</CardTitle>
-          <CardDescription>Current inventory levels with expiry tracking & barcodes</CardDescription>
+          <CardTitle>{t("inv_overview")}</CardTitle>
+          <CardDescription>{t("inv_overview_desc")}</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
           <Table className="min-w-[560px]">
             <TableHeader>
               <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead className="hidden sm:table-cell">Batch</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead className="text-right">Min</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Expiry</TableHead>
-                <TableHead className="hidden md:table-cell">Barcode</TableHead>
+                <TableHead>{t("inv_col_product")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("inv_col_batch")}</TableHead>
+                <TableHead className="text-right">{t("inv_col_stock")}</TableHead>
+                <TableHead className="text-right">{t("inv_col_min")}</TableHead>
+                <TableHead>{t("inv_col_status")}</TableHead>
+                <TableHead>{t("inv_col_expiry")}</TableHead>
+                <TableHead className="hidden md:table-cell">{t("inv_col_barcode")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading inventory…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t("inv_loading")}</TableCell></TableRow>
               ) : paged.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No items</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t("inv_none")}</TableCell></TableRow>
               ) : paged.map((item) => {
                 const stockStatus = item.stock === 0 ? "out" : item.stock < item.min_stock ? "low" : "ok";
                 const expiryStatus = getExpiryStatus(item.expiry_date);
@@ -132,13 +134,13 @@ const Inventory = () => {
                     <TableCell className="text-right text-muted-foreground">{item.min_stock}</TableCell>
                     <TableCell>
                       <Badge variant={stockStatus === "out" ? "destructive" : stockStatus === "low" ? "outline" : "secondary"}>
-                        {stockStatus === "out" ? "Out of Stock" : stockStatus === "low" ? "Low Stock" : "In Stock"}
+                        {stockStatus === "out" ? t("inv_out_of_stock") : stockStatus === "low" ? t("inv_low_stock") : t("inv_in_stock")}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       {item.expiry_date ? (
                         <Badge variant={expiryStatus === "expired" ? "destructive" : expiryStatus === "expiring" ? "outline" : "secondary"}>
-                          {expiryStatus === "expired" ? "Expired" : item.expiry_date}
+                          {expiryStatus === "expired" ? t("inv_expired") : item.expiry_date}
                         </Badge>
                       ) : "—"}
                     </TableCell>
@@ -153,10 +155,10 @@ const Inventory = () => {
             </TableBody>
           </Table>
           <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
-            <span className="text-muted-foreground">Showing {paged.length} of {stats.total} — page {page + 1}/{pageCount}</span>
+            <span className="text-muted-foreground">{t("inv_showing")} {paged.length} {t("prod_of")} {stats.total} — {t("prod_page")} {page + 1}/{pageCount}</span>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Prev</Button>
-              <Button variant="outline" size="sm" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>Next</Button>
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>{t("prod_prev")}</Button>
+              <Button variant="outline" size="sm" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>{t("prod_next")}</Button>
             </div>
           </div>
         </CardContent>

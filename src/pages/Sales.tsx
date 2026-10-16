@@ -109,7 +109,7 @@ const Sales = () => {
         buffer = "";
         const found = await lookupRef.current(code);
         if (found) addToCartRef.current(found);
-        else toast.error("Product not found: " + code);
+        else toast.error(t("sales_not_found") + ": " + code);
         return;
       }
       if (e.key.length === 1) {
@@ -145,8 +145,8 @@ const Sales = () => {
               for (const barcode of barcodes) {
                 const code = barcode.rawValue;
                 const found = await lookupRef.current(code);
-                if (found) { addToCartRef.current(found); toast.success(`Scanned: ${found.name}`); }
-                else toast.error("Product not found: " + code);
+                if (found) { addToCartRef.current(found); toast.success(`${t("sales_scanned")}: ${found.name}`); }
+                else toast.error(t("sales_not_found") + ": " + code);
               }
               stopScanner();
               return;
@@ -156,10 +156,10 @@ const Sales = () => {
         };
         setTimeout(scanLoop, 500);
       } else {
-        toast.info("BarcodeDetector API not available. Use a USB scanner instead.");
+        toast.info(t("sales_camera_unavailable"));
       }
     } catch {
-      toast.error("Camera access denied");
+      toast.error(t("sales_camera_denied"));
       setScannerOpen(false);
     }
   };
@@ -182,7 +182,7 @@ const Sales = () => {
     const { price, pcs_each, prices, pcsPer } = unitInfo(product, unit);
     const lineId = product.id + ":" + unit;
     if (product.category !== "service") {
-      if (reservedPcs(product.id) + pcs_each > (product.stock || 0)) { toast.error("Not enough stock"); return; }
+      if (reservedPcs(product.id) + pcs_each > (product.stock || 0)) { toast.error(t("sales_not_enough_stock")); return; }
     }
     const existing = cart.find((i) => i.id === lineId);
     if (existing) {
@@ -219,8 +219,8 @@ const Sales = () => {
   const total = subtotal - discount + vatAmount;
 
   const handleCompleteSale = async () => {
-    if (cart.length === 0) { toast.error("Cart is empty"); return; }
-    if (!user) { toast.error("Login required"); return; }
+    if (cart.length === 0) { toast.error(t("sales_cart_empty")); return; }
+    if (!user) { toast.error(t("sales_login_required")); return; }
     setLoading(true);
 
     const invoiceNumber = "INV-" + Date.now().toString(36).toUpperCase();
@@ -246,13 +246,13 @@ const Sales = () => {
         payment_method: paymentMethod,
       });
     } catch (e: any) {
-      toast.error("Sale failed: " + (e.message || "Unknown error"));
+      toast.error(t("sales_failed") + ": " + (e.message || "Unknown error"));
       setLoading(false);
       return;
     }
 
     setLastInvoice({ invoiceNumber, date: new Date().toLocaleDateString("en-GB"), customerName, customerPhone, items, subtotal, discount, vat: vatAmount, total, paymentMethod });
-    toast.success(`Sale completed! Invoice: ${invoiceNumber}`);
+    toast.success(`${t("sales_completed")}: ${invoiceNumber}`);
     setCart([]); setDiscount(0); setCustomerName("Walk-in Customer"); setCustomerPhone(""); setLoading(false);
     fetchProducts();
   };
@@ -283,7 +283,7 @@ const Sales = () => {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={startCameraScanner}>
-            <Camera className="h-4 w-4" /> <span className="hidden sm:inline">Scan</span> QR/Barcode
+            <Camera className="h-4 w-4" /> <span className="hidden sm:inline">{t("sales_scan_camera")}</span><span className="sm:hidden">{t("sales_scan_camera")}</span>
           </Button>
           <UserManual page="pos" />
         </div>
@@ -291,22 +291,22 @@ const Sales = () => {
 
       <Dialog open={scannerOpen} onOpenChange={(o) => { if (!o) stopScanner(); }}>
         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><ScanBarcode className="h-5 w-5" /> Camera Scanner</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><ScanBarcode className="h-5 w-5" /> {t("scan_camera_title")}</DialogTitle></DialogHeader>
           <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
             <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-40 h-40 border-2 border-primary rounded-lg animate-pulse" />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground text-center">Point camera at barcode or QR code</p>
-          <Button variant="outline" onClick={stopScanner}>Close</Button>
+          <p className="text-xs text-muted-foreground text-center">{t("scan_point")}</p>
+          <Button variant="outline" onClick={stopScanner}>{t("scan_close")}</Button>
         </DialogContent>
       </Dialog>
 
       <div className="flex gap-1.5 overflow-x-auto">
         {(["all", "medicine", "service"] as const).map(tab => (
           <Button key={tab} variant={activeTab === tab ? "default" : "outline"} size="sm" className="text-xs h-8 shrink-0" onClick={() => setActiveTab(tab)}>
-            {tab === "all" ? "All" : tab === "medicine" ? "Medicines" : "Services"}
+            {tab === "all" ? t("sales_all") : tab === "medicine" ? t("sales_medicines") : t("sales_services")}
           </Button>
         ))}
       </div>
@@ -315,16 +315,16 @@ const Sales = () => {
         <div className="lg:col-span-3 space-y-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input ref={searchRef} placeholder="Search product or barcode..." className="pl-9 h-9 text-sm" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+            <Input ref={searchRef} placeholder={t("sales_search_ph")} className="pl-9 h-9 text-sm" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
           </div>
-          <p className="text-[10px] text-muted-foreground">💡 USB scanner auto-detects. Tap camera button for mobile scanning.</p>
+          <p className="text-[10px] text-muted-foreground">{t("sales_scanner_hint")}</p>
           <div className="grid gap-1.5 grid-cols-1 sm:grid-cols-2 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-1">
             {searchingProducts ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="h-14 rounded-lg bg-muted animate-pulse" />
               ))
             ) : filtered.length === 0 ? (
-              <p className="col-span-full py-8 text-center text-xs text-muted-foreground">No products found</p>
+              <p className="col-span-full py-8 text-center text-xs text-muted-foreground">{t("sales_no_products")}</p>
             ) : filtered.map((p) => {
               const ui = unitInfo(p, "pcs");
               const isService = p.category === "service";
@@ -336,21 +336,21 @@ const Sales = () => {
                   <p className="font-medium text-xs sm:text-sm text-foreground truncate">{p.name}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{p.generic_name}</p>
                   {isService
-                    ? <Badge variant="outline" className="text-[9px] mt-0.5">Service</Badge>
-                    : <Badge variant={p.stock === 0 ? "destructive" : p.stock < 20 ? "outline" : "secondary"} className="text-[9px] mt-0.5">{p.stock} pcs</Badge>}
+                    ? <Badge variant="outline" className="text-[9px] mt-0.5">{t("sales_service")}</Badge>
+                    : <Badge variant={p.stock === 0 ? "destructive" : p.stock < 20 ? "outline" : "secondary"} className="text-[9px] mt-0.5">{p.stock} {t("sales_pcs_short")}</Badge>}
                 </div>
                 <div className="flex items-center gap-1 shrink-0 ml-2">
                   <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => addToCart(p, "pcs")}>
-                    Pcs ৳{ui.prices.pcs.toFixed(0)}
+                    {t("sales_pcs")} ৳{ui.prices.pcs.toFixed(0)}
                   </Button>
                   {!isService && ui.prices.leaf > 0 && ui.pcsPer.leaf > 1 && (
                     <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => addToCart(p, "leaf")}>
-                      Leaf ৳{ui.prices.leaf.toFixed(0)}
+                      {t("sales_leaf")} ৳{ui.prices.leaf.toFixed(0)}
                     </Button>
                   )}
                   {!isService && ui.prices.box > 0 && ui.pcsPer.box > 1 && (
                     <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => addToCart(p, "box")}>
-                      Box ৳{ui.prices.box.toFixed(0)}
+                      {t("sales_box")} ৳{ui.prices.box.toFixed(0)}
                     </Button>
                   )}
                 </div>
@@ -369,18 +369,18 @@ const Sales = () => {
             </CardHeader>
             <CardContent className="space-y-2 px-3 sm:px-6">
               <div className="grid grid-cols-2 gap-1.5">
-                <Input placeholder="Customer" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="text-xs h-8" />
-                <Input placeholder="Phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="text-xs h-8" />
+                <Input placeholder={t("sales_customer")} value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="text-xs h-8" />
+                <Input placeholder={t("sales_phone")} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="text-xs h-8" />
               </div>
 
               <div className="space-y-1.5 max-h-36 sm:max-h-48 overflow-y-auto">
                 {cart.length === 0 ? (
-                  <p className="text-center text-muted-foreground text-xs py-4">Scan or search to add items</p>
+                  <p className="text-center text-muted-foreground text-xs py-4">{t("sales_add_hint")}</p>
                 ) : cart.map((item) => (
                   <div key={item.id} className="flex items-center gap-1.5 text-xs">
                     <span className="flex-1 truncate">
                       {item.name}
-                      <span className="text-[10px] text-muted-foreground"> · ৳{item.price.toFixed(0)}/{item.unit}</span>
+                      <span className="text-[10px] text-muted-foreground"> · ৳{item.price.toFixed(0)}/{(item.unit === "box" ? t("sales_box") : item.unit === "leaf" ? t("sales_leaf") : t("sales_pcs"))}</span>
                     </span>
                     {item.category !== "service" && item.pcsPer.box > 1 ? (
                       <select
@@ -388,9 +388,9 @@ const Sales = () => {
                         onChange={(e) => changeUnit(item, e.target.value as Unit)}
                         className="h-6 text-[10px] rounded border border-border bg-background px-0.5"
                       >
-                        <option value="pcs">Pcs</option>
-                        {item.pcsPer.leaf > 1 && <option value="leaf">Leaf</option>}
-                        {item.pcsPer.box > 1 && <option value="box">Box</option>}
+                        <option value="pcs">{t("sales_pcs")}</option>
+                        {item.pcsPer.leaf > 1 && <option value="leaf">{t("sales_leaf")}</option>}
+                        {item.pcsPer.box > 1 && <option value="box">{t("sales_box")}</option>}
                       </select>
                     ) : (
                       <span className="text-[10px] text-muted-foreground uppercase">{item.unit}</span>
@@ -409,21 +409,21 @@ const Sales = () => {
               <Separator />
 
               <div className="space-y-1 text-xs">
-                <div className="flex justify-between"><span>Subtotal</span><span>৳{subtotal.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>{t("sales_subtotal")}</span><span>৳{subtotal.toFixed(2)}</span></div>
                 <div className="flex items-center justify-between gap-2">
-                  <span>Discount</span>
+                  <span>{t("sales_discount")}</span>
                   <Input type="number" min={0} className="w-20 h-6 text-[11px] text-right" value={discount} onChange={(e) => setDiscount(Math.max(0, Number(e.target.value)))} />
                 </div>
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-1 cursor-pointer">
                     <input type="checkbox" checked={includeVat} onChange={(e) => setIncludeVat(e.target.checked)} className="rounded" />
-                    <span>VAT 5%</span>
+                    <span>{t("sales_vat_label")}</span>
                   </label>
                   <span>৳{vatAmount.toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-base sm:text-lg">
-                  <span>Total</span>
+                  <span>{t("total")}</span>
                   <span className="text-primary">৳{total.toFixed(2)}</span>
                 </div>
               </div>
@@ -431,20 +431,20 @@ const Sales = () => {
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="cash">{t("sales_cash")}</SelectItem>
                   <SelectItem value="bkash">bKash</SelectItem>
                   <SelectItem value="nagad">Nagad</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="card">{t("sales_card")}</SelectItem>
                 </SelectContent>
               </Select>
 
               <Button className="w-full h-10" onClick={handleCompleteSale} disabled={loading || cart.length === 0}>
-                {loading ? "Processing..." : t("sales_complete")}
+                {loading ? t("sales_processing") : t("sales_complete")}
               </Button>
 
               {lastInvoice && (
                 <Button variant="outline" className="w-full gap-2 text-xs" onClick={handlePrint}>
-                  <Printer className="h-4 w-4" /> Print Receipt (72mm Thermal)
+                  <Printer className="h-4 w-4" /> {t("sales_print_receipt_72")}
                 </Button>
               )}
             </CardContent>

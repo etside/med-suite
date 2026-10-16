@@ -136,4 +136,70 @@ export const en = {
   footer_text: "Medsuite-eT by EngineersTech — Pharmacy Management System",
   admin_orders: "Order Management",
   admin_orders_desc: "View and manage incoming orders, verify payments",
+
+  // Nav groups / common
+  nav_group_main: "Main", nav_group_shop: "Shop", nav_group_admin: "Administration",
+  sign_out: "Sign out", nav_cms: "Content Manager", nav_customer_ledger: "Customer Ledger",
+  light_mode: "Light mode", dark_mode: "Dark mode", yes: "Yes", no: "No", all: "All",
+  loading_data: "Loading…", required: "Required", optional: "Optional", print: "Print",
+  saving: "Saving…", updating: "Updating…", actions: "Actions", status: "Status",
+  total: "Total", quantity: "Quantity", price: "Price", name: "Name",
+
+  // POS / Sales
+  sales_all: "All", sales_medicines: "Medicines", sales_services: "Services",
+  sales_search_ph: "Search product or barcode...", sales_scan_camera: "Scan QR/Barcode",
+  sales_scanner_hint: "USB scanner auto-detects. Tap camera button for mobile scanning.",
+  sales_no_products: "No products found", sales_add_hint: "Scan or search to add items",
+  sales_customer: "Customer", sales_phone: "Phone", sales_discount: "Discount",
+  sales_vat_label: "VAT 5%", sales_processing: "Processing...", sales_unit: "Unit",
+  sales_pcs: "Pcs", sales_leaf: "Leaf", sales_box: "Box", sales_service: "Service",
+  sales_pcs_short: "pcs", scan_camera_title: "Camera Scanner",
+  scan_point: "Point camera at barcode or QR code", scan_close: "Close",
+  sales_units: "units", sales_print_receipt_72: "Print Receipt (72mm Thermal)",
+  sales_card: "Card", sales_not_found: "Product not found", sales_not_enough_stock: "Not enough stock",
+  sales_cart_empty: "Cart is empty", sales_login_required: "Login required", sales_failed: "Sale failed",
+  sales_completed: "Sale completed! Invoice", sales_camera_unavailable: "BarcodeDetector API not available. Use a USB scanner instead.",
+  sales_camera_denied: "Camera access denied", sales_scanned: "Scanned",
+
+  // Products
+  prod_image: "Image", prod_barcode: "Barcode", prod_loading: "Loading products…",
+  prod_none: "No products found", prod_showing: "Showing", prod_of: "of", prod_page: "page",
+  prod_prev: "Prev", prod_next: "Next", prod_barcodes: "Barcodes",
+  prod_delete_title: "Delete Product?", prod_delete_desc: "This action cannot be undone. The product will be permanently removed.",
+  prod_delete_confirm: "Delete", prod_col_image: "Image",
+  prod_all_count: "All Products",
+
+  // Product dialog
+  pd_add_title: "Add New Product", pd_edit_title: "Edit Product", pd_image: "Product Image",
+  pd_name_en: "Name (English)", pd_name_bn: "Name (বাংলা)", pd_generic: "Generic Name",
+  pd_manufacturer: "Manufacturer", pd_category: "Category", pd_packaging: "Packaging Units",
+  pd_pcs_per_leaf: "Pieces per Leaf", pd_leaves_per_box: "Leaves per Box",
+  pd_pricing_hint: "Pricing — edit any one, the rest auto-calculate",
+  pd_price_box: "Box (৳)", pd_price_leaf: "Leaf (৳)", pd_price_pcs: "Pcs (৳)",
+  pd_stock_pcs: "Stock (pcs)", pd_min_stock_pcs: "Min Stock (pcs)", pd_batch: "Batch No.",
+  pd_expiry: "Expiry Date", pd_rx: "Requires Prescription",
+  pd_desc_en: "Description (English)", pd_desc_bn: "Description (বাংলা)",
+  pd_add_btn: "Add Product", pd_update_btn: "Update", pd_name_required: "Product name is required",
+  pd_added: "Product added!", pd_updated: "Product updated!",
+  pd_box_eq: "1 Box = ", pd_leaf_word: "Leaf", pd_pcs_word: "Pcs",
+
+  // Inventory
+  inv_total: "Total Items", inv_low: "Low Stock", inv_out: "Out of Stock",
+  inv_expiring: "Expiring Soon", inv_overview: "Stock Overview",
+  inv_overview_desc: "Current inventory levels with expiry tracking & barcodes",
+  inv_col_product: "Product", inv_col_batch: "Batch", inv_col_stock: "Stock",
+  inv_col_min: "Min", inv_col_status: "Status", inv_col_expiry: "Expiry",
+  inv_col_barcode: "Barcode", inv_in_stock: "In Stock", inv_low_stock: "Low Stock",
+  inv_out_of_stock: "Out of Stock", inv_expired: "Expired", inv_print_barcodes: "Print Barcodes",
+  inv_loading: "Loading inventory…", inv_none: "No items", inv_showing: "Showing",
+
+  // Shop extra
+  shop_load_more: "Load more", shop_remaining: "remaining", shop_no_products: "No products found",
+  shop_out: "Out", shop_low: "Low", shop_in: "In Stock", shop_add: "Add",
+  shop_disabled_title: "Online Shop is Currently Disabled",
+  shop_disabled_desc: "The online shop has been disabled by the administrator. Please check back later or contact the pharmacy directly.",
+
+  // Dashboard / misc
+  dash_greeting: "Welcome",  // generic
+  error_generic: "Something went wrong",
 };

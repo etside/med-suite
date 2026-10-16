@@ -10,6 +10,7 @@ import { categories } from "@/data/categories";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ProductDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ type PriceMode = "pcs" | "leaf" | "box";
 const round2 = (n: number) => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100;
 
 export function ProductDialog({ open, onOpenChange, product, onSaved }: ProductDialogProps) {
+  const { t } = useLanguage();
   const [form, setForm] = useState(defaultProduct);
   const [saving, setSaving] = useState(false);
   const [priceMode, setPriceMode] = useState<PriceMode>("pcs");
@@ -95,7 +97,7 @@ export function ProductDialog({ open, onOpenChange, product, onSaved }: ProductD
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error("Product name is required"); return; }
+    if (!form.name.trim()) { toast.error(t("pd_name_required")); return; }
     setSaving(true);
 
     const payload = {
@@ -125,7 +127,7 @@ export function ProductDialog({ open, onOpenChange, product, onSaved }: ProductD
     }
 
     setSaving(false);
-    toast.success(isEdit ? "Product updated!" : "Product added!");
+    toast.success(isEdit ? t("pd_updated") : t("pd_added"));
     onOpenChange(false);
     onSaved();
   };
@@ -137,33 +139,33 @@ export function ProductDialog({ open, onOpenChange, product, onSaved }: ProductD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Product" : "Add New Product"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("pd_edit_title") : t("pd_add_title")}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="space-y-1.5">
-            <Label>Product Image</Label>
+            <Label>{t("pd_image")}</Label>
             <ImageUpload currentUrl={form.image_url} onUploaded={(url) => set("image_url", url)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Name (English) *</Label>
+              <Label>{t("pd_name_en")} *</Label>
               <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Name (বাংলা)</Label>
+              <Label>{t("pd_name_bn")}</Label>
               <Input value={form.name_bn} onChange={(e) => set("name_bn", e.target.value)} />
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Generic Name</Label>
+            <Label>{t("pd_generic")}</Label>
             <Input value={form.generic_name} onChange={(e) => set("generic_name", e.target.value)} placeholder="e.g. Paracetamol 500mg" />
           </div>
           <div className="space-y-1.5">
-            <Label>Manufacturer</Label>
+            <Label>{t("pd_manufacturer")}</Label>
             <Input value={form.manufacturer} onChange={(e) => set("manufacturer", e.target.value)} placeholder="e.g. Square Pharmaceuticals" />
           </div>
           <div className="space-y-1.5">
-            <Label>Category</Label>
+            <Label>{t("pd_category")}</Label>
             <Select value={form.category} onValueChange={(v) => set("category", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -174,31 +176,31 @@ export function ProductDialog({ open, onOpenChange, product, onSaved }: ProductD
 
           {/* Unit hierarchy */}
           <div className="rounded-lg border border-border p-3 space-y-3">
-            <p className="text-sm font-semibold">Packaging Units</p>
+            <p className="text-sm font-semibold">{t("pd_packaging")}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Pieces per Leaf</Label>
+                <Label>{t("pd_pcs_per_leaf")}</Label>
                 <Input type="number" min={1} value={form.pcs_per_leaf} onChange={(e) => onUnitChange("pcs_per_leaf", e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>Leaves per Box</Label>
+                <Label>{t("pd_leaves_per_box")}</Label>
                 <Input type="number" min={1} value={form.leaves_per_box} onChange={(e) => onUnitChange("leaves_per_box", e.target.value)} />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">1 Box = {b} Leaf{b !== 1 ? "s" : ""} = {b * p} Pcs</p>
+            <p className="text-xs text-muted-foreground">{t("pd_box_eq")}{b} {t("pd_leaf_word")}{b !== 1 ? "s" : ""} = {b * p} {t("pd_pcs_word")}</p>
 
-            <p className="text-sm font-semibold pt-1">Pricing — edit any one, the rest auto-calculate</p>
+            <p className="text-sm font-semibold pt-1">{t("pd_pricing_hint")}</p>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label>Box (৳)</Label>
+                <Label>{t("pd_price_box")}</Label>
                 <Input type="number" min={0} step={0.01} value={form.price_box} onChange={(e) => onPriceChange("box", e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>Leaf (৳)</Label>
+                <Label>{t("pd_price_leaf")}</Label>
                 <Input type="number" min={0} step={0.01} value={form.price_leaf} onChange={(e) => onPriceChange("leaf", e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>Pcs (৳)</Label>
+                <Label>{t("pd_price_pcs")}</Label>
                 <Input type="number" min={0} step={0.01} value={form.price} onChange={(e) => onPriceChange("pcs", e.target.value)} />
               </div>
             </div>
@@ -206,40 +208,40 @@ export function ProductDialog({ open, onOpenChange, product, onSaved }: ProductD
 
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label>Stock (pcs)</Label>
+              <Label>{t("pd_stock_pcs")}</Label>
               <Input type="number" min={0} value={form.stock} onChange={(e) => set("stock", e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Min Stock (pcs)</Label>
+              <Label>{t("pd_min_stock_pcs")}</Label>
               <Input type="number" min={0} value={form.min_stock} onChange={(e) => set("min_stock", e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Batch No.</Label>
+              <Label>{t("pd_batch")}</Label>
               <Input value={form.batch_number} onChange={(e) => set("batch_number", e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Expiry Date</Label>
+              <Label>{t("pd_expiry")}</Label>
               <Input type="date" value={form.expiry_date} onChange={(e) => set("expiry_date", e.target.value)} />
             </div>
             <div className="flex items-center gap-2 pt-6">
               <Switch checked={form.requires_prescription} onCheckedChange={(v) => set("requires_prescription", v)} />
-              <Label>Requires Prescription</Label>
+              <Label>{t("pd_rx")}</Label>
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Description (English)</Label>
+            <Label>{t("pd_desc_en")}</Label>
             <Textarea rows={2} value={form.description} onChange={(e) => set("description", e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>Description (বাংলা)</Label>
+            <Label>{t("pd_desc_bn")}</Label>
             <Textarea rows={2} value={form.description_bn} onChange={(e) => set("description_bn", e.target.value)} />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : isEdit ? "Update" : "Add Product"}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? t("saving") : isEdit ? t("pd_update_btn") : t("pd_add_btn")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

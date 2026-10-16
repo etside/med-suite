@@ -226,4 +226,70 @@ export const bn: Record<string, string> = {
   settings_merchant: "মার্চেন্ট",
   settings_personal: "ব্যক্তিগত",
   landing_footer: "মেডসুইট — এঞ্জিনিয়ার্সটেক দ্বারা তৈরি। সর্বাধিকার সংরক্ষিত।",
+
+  // Nav groups / common
+  nav_group_main: "প্রধান মেনু", nav_group_shop: "দোকান", nav_group_admin: "প্রশাসন",
+  sign_out: "সাইন আউট", nav_cms: "কনটেন্ট ম্যানেজার", nav_customer_ledger: "গ্রাহক খতিয়ান",
+  light_mode: "লাইট মোড", dark_mode: "ডার্ক মোড", yes: "হ্যাঁ", no: "না", all: "সব",
+  loading_data: "লোড হচ্ছে…", required: "আবশ্যক", optional: "ঐচ্ছিক", print: "প্রিন্ট",
+  saving: "সংরক্ষণ হচ্ছে…", updating: "আপডেট হচ্ছে…", actions: "কার্যক্রম", status: "অবস্থা",
+  total: "মোট", quantity: "পরিমাণ", price: "মূল্য", name: "নাম",
+
+  // POS / Sales
+  sales_all: "সব", sales_medicines: "ঔষধ", sales_services: "সেবা",
+  sales_search_ph: "পণ্য বা বারকোড খুঁজুন...", sales_scan_camera: "QR/বারকোড স্ক্যান",
+  sales_scanner_hint: "USB স্ক্যানার স্বয়ংক্রিয়ভাবে ধরবে। মোবাইলে স্ক্যান করতে ক্যামেরা বাটনে চাপুন।",
+  sales_no_products: "কোনো পণ্য পাওয়া যায়নি", sales_add_hint: "আইটেম যোগ করতে স্ক্যান বা খুঁজুন",
+  sales_customer: "গ্রাহক", sales_phone: "ফোন", sales_discount: "ছাড়",
+  sales_vat_label: "ভ্যাট ৫%", sales_processing: "প্রসেস হচ্ছে...", sales_unit: "ইউনিট",
+  sales_pcs: "পিস", sales_leaf: "লিফ", sales_box: "বক্স", sales_service: "সেবা",
+  sales_pcs_short: "পিস", scan_camera_title: "ক্যামেরা স্ক্যানার",
+  scan_point: "বারকোড বা QR কোডের দিকে ক্যামেরা ধরুন", scan_close: "বন্ধ",
+  sales_units: "ইউনিট", sales_print_receipt_72: "রসিদ প্রিন্ট (৭২মিমি থার্মাল)",
+  sales_card: "কার্ড", sales_not_found: "পণ্য পাওয়া যায়নি", sales_not_enough_stock: "পর্যাপ্ত স্টক নেই",
+  sales_cart_empty: "কার্ট খালি", sales_login_required: "লগইন প্রয়োজন", sales_failed: "বিক্রি ব্যর্থ",
+  sales_completed: "বিক্রি সম্পন্ন! ইনভয়েস", sales_camera_unavailable: "BarcodeDetector API নেই। USB স্ক্যানার ব্যবহার করুন।",
+  sales_camera_denied: "ক্যামেরা অ্যাক্সেস অস্বীকৃত", sales_scanned: "স্ক্যান হয়েছে",
+
+  // Products
+  prod_image: "ছবি", prod_barcode: "বারকোড", prod_loading: "পণ্য লোড হচ্ছে…",
+  prod_none: "কোনো পণ্য পাওয়া যায়নি", prod_showing: "দেখানো হচ্ছে", prod_of: "এর", prod_page: "পৃষ্ঠা",
+  prod_prev: "পূর্ববর্তী", prod_next: "পরবর্তী", prod_barcodes: "বারকোড",
+  prod_delete_title: "পণ্য মুছবেন?", prod_delete_desc: "এই কাজটি ফিরিয়ে আনা যাবে না। পণ্যটি স্থায়ীভাবে মুছে যাবে।",
+  prod_delete_confirm: "মুছুন", prod_col_image: "ছবি",
+  prod_all_count: "সকল পণ্য",
+
+  // Product dialog
+  pd_add_title: "নতুন পণ্য যোগ করুন", pd_edit_title: "পণ্য সম্পাদনা", pd_image: "পণ্যের ছবি",
+  pd_name_en: "নাম (ইংরেজি)", pd_name_bn: "নাম (বাংলা)", pd_generic: "জেনেরিক নাম",
+  pd_manufacturer: "প্রস্তুতকারক", pd_category: "বিভাগ", pd_packaging: "প্যাকেজিং ইউনিট",
+  pd_pcs_per_leaf: "প্রতি লিফে পিস", pd_leaves_per_box: "প্রতি বক্সে লিফ",
+  pd_pricing_hint: "মূল্য — যেকোনো একটি লিখুন, বাকিগুলো স্বয়ংক্রিয়ভাবে হিসাব হবে",
+  pd_price_box: "বক্স (৳)", pd_price_leaf: "লিফ (৳)", pd_price_pcs: "পিস (৳)",
+  pd_stock_pcs: "স্টক (পিস)", pd_min_stock_pcs: "সর্বনিম্ন স্টক (পিস)", pd_batch: "ব্যাচ নং",
+  pd_expiry: "মেয়াদ শেষের তারিখ", pd_rx: "প্রেসক্রিপশন প্রয়োজন",
+  pd_desc_en: "বিবরণ (ইংরেজি)", pd_desc_bn: "বিবরণ (বাংলা)",
+  pd_add_btn: "পণ্য যোগ করুন", pd_update_btn: "আপডেট", pd_name_required: "পণ্যের নাম আবশ্যক",
+  pd_added: "পণ্য যোগ হয়েছে!", pd_updated: "পণ্য আপডেট হয়েছে!",
+  pd_box_eq: "১ বক্স = ", pd_leaf_word: "লিফ", pd_pcs_word: "পিস",
+
+  // Inventory
+  inv_total: "মোট আইটেম", inv_low: "কম স্টক", inv_out: "স্টক শেষ",
+  inv_expiring: "শীঘ্রই মেয়াদোত্তীর্ণ", inv_overview: "স্টক ওভারভিউ",
+  inv_overview_desc: "মেয়াদ ট্র্যাকিং ও বারকোড সহ বর্তমান স্টক স্তর",
+  inv_col_product: "পণ্য", inv_col_batch: "ব্যাচ", inv_col_stock: "স্টক",
+  inv_col_min: "সর্বনিম্ন", inv_col_status: "অবস্থা", inv_col_expiry: "মেয়াদ",
+  inv_col_barcode: "বারকোড", inv_in_stock: "স্টকে আছে", inv_low_stock: "কম স্টক",
+  inv_out_of_stock: "স্টক শেষ", inv_expired: "মেয়াদোত্তীর্ণ", inv_print_barcodes: "বারকোড প্রিন্ট",
+  inv_loading: "ইনভেন্টরি লোড হচ্ছে…", inv_none: "কোনো আইটেম নেই", inv_showing: "দেখানো হচ্ছে",
+
+  // Shop extra
+  shop_load_more: "আরও দেখুন", shop_remaining: "বাকি", shop_no_products: "কোনো পণ্য পাওয়া যায়নি",
+  shop_out: "শেষ", shop_low: "কম", shop_in: "স্টকে আছে", shop_add: "যোগ করুন",
+  shop_disabled_title: "অনলাইন দোকান বর্তমানে বন্ধ",
+  shop_disabled_desc: "প্রশাসক অনলাইন দোকান বন্ধ করেছেন। অনুগ্রহ করে পরে আবার দেখুন বা সরাসরি ফার্মেসিতে যোগাযোগ করুন।",
+
+  // Dashboard / misc
+  dash_greeting: "স্বাগতম",
+  error_generic: "কিছু একটা ভুল হয়েছে",
 };

@@ -9,6 +9,7 @@ import { Plus, Search, Pencil, Trash2, Barcode } from "lucide-react";
 import { api } from "@/lib/api";
 import { ProductDialog } from "@/components/ProductDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { ExcelImportExport } from "@/components/ExcelImportExport";
 import { BulkBarcodeDialog } from "@/components/BulkBarcodeDialog";
@@ -22,6 +23,7 @@ import {
 
 const Products = () => {
   const { isStaff } = useAuth();
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const categoryFilter = searchParams.get("category") || "";
   const [searchInput, setSearchInput] = useState("");
@@ -88,8 +90,8 @@ const Products = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Products</h1>
-          <p className="text-muted-foreground">Medicine catalog with batch tracking & barcodes</p>
+          <h1 className="text-2xl font-bold text-foreground">{t("prod_title")}</h1>
+          <p className="text-muted-foreground">{t("prod_subtitle")}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <UserManual page="products" />
@@ -97,10 +99,10 @@ const Products = () => {
             <>
               <ExcelImportExport onImported={fetchProducts} />
               <Button variant="outline" size="sm" onClick={() => setBarcodeOpen(true)}>
-                <Barcode className="mr-1 h-3.5 w-3.5" /> Barcodes
+                <Barcode className="mr-1 h-3.5 w-3.5" /> {t("prod_barcodes")}
               </Button>
               <Button onClick={() => { setEditProduct(null); setDialogOpen(true); }}>
-                <Plus className="mr-2 h-4 w-4" />Add Product
+                <Plus className="mr-2 h-4 w-4" />{t("prod_add")}
               </Button>
             </>
           )}
@@ -109,10 +111,10 @@ const Products = () => {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>All Products ({total})</CardTitle>
+            <CardTitle>{t("prod_all_count")} ({total})</CardTitle>
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search medicines..." className="pl-9" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+              <Input placeholder={t("prod_search")} className="pl-9" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
             </div>
           </div>
         </CardHeader>
@@ -120,22 +122,22 @@ const Products = () => {
           <Table className="min-w-[720px]">
             <TableHeader>
               <TableRow>
-                <TableHead>Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden sm:table-cell">Generic</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Price (৳)</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead className="hidden md:table-cell">Barcode</TableHead>
-                <TableHead>Expiry</TableHead>
-                {isStaff && <TableHead className="text-right">Actions</TableHead>}
+                <TableHead>{t("prod_col_image")}</TableHead>
+                <TableHead>{t("prod_name")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("prod_generic")}</TableHead>
+                <TableHead>{t("prod_category")}</TableHead>
+                <TableHead className="text-right">{t("prod_price")}</TableHead>
+                <TableHead className="text-right">{t("prod_stock")}</TableHead>
+                <TableHead className="hidden md:table-cell">{t("prod_barcode")}</TableHead>
+                <TableHead>{t("prod_expiry")}</TableHead>
+                {isStaff && <TableHead className="text-right">{t("prod_actions")}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading products…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{t("prod_loading")}</TableCell></TableRow>
               ) : paged.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No products found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{t("prod_none")}</TableCell></TableRow>
               ) : paged.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
@@ -182,10 +184,10 @@ const Products = () => {
             </TableBody>
           </Table>
           <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
-            <span className="text-muted-foreground">Showing {paged.length} of {total} — page {safePage + 1}/{pageCount}</span>
+            <span className="text-muted-foreground">{t("prod_showing")} {paged.length} {t("prod_of")} {total} — {t("prod_page")} {safePage + 1}/{pageCount}</span>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled={safePage === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Prev</Button>
-              <Button variant="outline" size="sm" disabled={safePage >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>Next</Button>
+              <Button variant="outline" size="sm" disabled={safePage === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>{t("prod_prev")}</Button>
+              <Button variant="outline" size="sm" disabled={safePage >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>{t("prod_next")}</Button>
             </div>
           </div>
         </CardContent>
@@ -197,12 +199,12 @@ const Products = () => {
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone. The product will be permanently removed.</AlertDialogDescription>
+            <AlertDialogTitle>{t("prod_delete_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("prod_delete_desc")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">{t("prod_delete_confirm")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -124,8 +124,8 @@ const Shop = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 px-4">
         <Store className="h-12 w-12 text-muted-foreground/40" />
-        <h2 className="text-xl font-bold text-foreground">Online Shop is Currently Disabled</h2>
-        <p className="text-muted-foreground max-w-md">The online shop has been disabled by the administrator. Please check back later or contact the pharmacy directly.</p>
+        <h2 className="text-xl font-bold text-foreground">{t("shop_disabled_title")}</h2>
+        <p className="text-muted-foreground max-w-md">{t("shop_disabled_desc")}</p>
       </div>
     );
   }
@@ -241,7 +241,7 @@ const Shop = () => {
                 <div className="flex items-center justify-between gap-0.5">
                   <span className="text-xs sm:text-base font-bold text-primary">৳{Number(product.price).toFixed(0)}</span>
                   <Badge variant={product.stock === 0 ? "destructive" : product.stock < 20 ? "outline" : "secondary"} className="text-[8px] sm:text-[10px] px-1 py-0">
-                    {product.stock === 0 ? "Out" : product.stock < 20 ? "Low" : "In Stock"}
+                    {product.stock === 0 ? t("shop_out") : product.stock < 20 ? t("shop_low") : t("shop_in")}
                   </Badge>
                 </div>
                 {product.requires_prescription && (
@@ -257,7 +257,7 @@ const Shop = () => {
                       </div>
                     ) : (
                       <Button className="w-full h-7 sm:h-8 text-[10px] sm:text-xs" size="sm" onClick={() => addToCart(product)}>
-                        <Plus className="mr-0.5 h-3 w-3" /> Add
+                        <Plus className="mr-0.5 h-3 w-3" /> {t("shop_add")}
                       </Button>
                     )}
                   </div>
@@ -267,14 +267,14 @@ const Shop = () => {
           );
         })}
         {visible.length === 0 && (
-          <div className="col-span-full py-12 text-center text-muted-foreground">No products found</div>
+          <div className="col-span-full py-12 text-center text-muted-foreground">{t("shop_no_products")}</div>
         )}
       </div>
       )}
       {!loadingProducts && visible.length < total && (
         <div className="flex justify-center pt-2">
           <Button variant="outline" disabled={loadingMore} onClick={() => loadPage(products.length, true)}>
-            {loadingMore ? "Loading…" : `Load more (${total - visible.length} remaining)`}
+            {loadingMore ? t("loading_data") : `${t("shop_load_more")} (${total - visible.length} ${t("shop_remaining")})`}
           </Button>
         </div>
       )}
