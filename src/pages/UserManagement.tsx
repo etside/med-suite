@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Shield, Users, CheckCircle, XCircle, Clock, MessageCircle, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
 interface UserWithRole {
@@ -22,6 +23,7 @@ const ROLE_HIERARCHY: Record<string, number> = { customer: 0, staff: 1, admin: 2
 const WHATSAPP_HELP = "https://wa.me/8801873722228?text=Hi%2C%20I%20need%20help%20with%20Medsuite-eT%20platform";
 
 const UserManagement = () => {
+  const { t } = useLanguage();
   const { isAdmin, isSuperAdmin, user: currentUser, roles: currentRoles } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,50 +77,50 @@ const UserManagement = () => {
   const changeRole = async (userId: string, newRole: string) => {
     const targetUser = users.find(u => u.user_id === userId);
     if (!targetUser || !canChangeRole(targetUser)) {
-      toast.error("You cannot change this user's role");
+      toast.error(t("um_role_current"));
       return;
     }
     if (ROLE_HIERARCHY[newRole] >= currentMaxRole) {
-      toast.error("Cannot assign a role equal to or higher than your own");
+      toast.error(t("um_role_higher"));
       return;
     }
     try {
       await api.userRoles.set(userId, newRole);
-      toast.success("Role updated to " + newRole);
+      toast.success(t("um_role_updated") + ": " + newRole);
       fetchUsers();
     } catch (e: any) {
-      toast.error("Failed: " + (e.message || ""));
+      toast.error(t("settings_save_failed") + ": " + (e.message || ""));
     }
   };
 
   const updateApproval = async (userId: string, status: string) => {
     try {
       await api.profiles.update({ user_id: userId, approval_status: status });
-      toast.success(`User ${status}`);
+      toast.success(`${t("um_user_status")} ${status}`);
       fetchUsers();
     } catch (e: any) {
-      toast.error("Failed: " + (e.message || ""));
+      toast.error(t("settings_save_failed") + ": " + (e.message || ""));
     }
   };
 
   const removeUser = async (userId: string) => {
-    if (!isSuperAdmin) { toast.error("Only super admin can remove users"); return; }
-    if (userId === currentUser?.id) { toast.error("Cannot remove yourself"); return; }
+    if (!isSuperAdmin) { toast.error(t("um_only_super_remove")); return; }
+    if (userId === currentUser?.id) { toast.error(t("um_cannot_remove_self")); return; }
     const targetUser = users.find(u => u.user_id === userId);
     if (targetUser && getMaxRole(targetUser.roles) >= currentMaxRole) {
-      toast.error("Cannot remove a user with equal or higher role"); return;
+      toast.error(t("um_cannot_remove_higher")); return;
     }
     try {
       await api.userRoles.removeUser(userId);
-      toast.success("User removed");
+      toast.success(t("um_user_removed"));
       fetchUsers();
     } catch (e: any) {
-      toast.error("Failed: " + (e.message || ""));
+      toast.error(t("settings_save_failed") + ": " + (e.message || ""));
     }
   };
 
   if (!isAdmin) {
-    return <div className="py-20 text-center text-muted-foreground">Access denied. Admin only.</div>;
+    return <div className="py-20 text-center text-muted-foreground">{t("um_access_denied")}</div>;
   }
 
   const pendingUsers = users.filter((u) => u.approval_status === "pending");
@@ -130,23 +132,23 @@ const UserManagement = () => {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-2">
-            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> User Management
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> {t("nav_user_mgmt")}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Manage accounts & approve new signups</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">{t("um_subtitle")}</p>
         </div>
         <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto" asChild>
           <a href={WHATSAPP_HELP} target="_blank" rel="noopener noreferrer">
-            <MessageCircle className="h-4 w-4" /> WhatsApp Help
+            <MessageCircle className="h-4 w-4" /> {t("um_whatsapp_help")}
           </a>
         </Button>
       </div>
 
       {/* Stats */}
       <div className="grid gap-2 sm:gap-4 grid-cols-2 sm:grid-cols-4">
-        <Card><CardContent className="pt-3 sm:pt-4 px-3"><p className="text-[10px] sm:text-sm text-muted-foreground">Total</p><p className="text-xl sm:text-2xl font-bold">{users.length}</p></CardContent></Card>
-        <Card><CardContent className="pt-3 sm:pt-4 px-3"><p className="text-[10px] sm:text-sm text-muted-foreground">Pending</p><p className="text-xl sm:text-2xl font-bold text-amber-600">{pendingUsers.length}</p></CardContent></Card>
-        <Card><CardContent className="pt-3 sm:pt-4 px-3"><p className="text-[10px] sm:text-sm text-muted-foreground">Staff</p><p className="text-xl sm:text-2xl font-bold text-primary">{users.filter(u => u.roles.includes("staff") || u.roles.includes("admin")).length}</p></CardContent></Card>
-        <Card><CardContent className="pt-3 sm:pt-4 px-3"><p className="text-[10px] sm:text-sm text-muted-foreground">Customers</p><p className="text-xl sm:text-2xl font-bold">{users.filter(u => u.roles.includes("customer") && !u.roles.includes("staff")).length}</p></CardContent></Card>
+        <Card><CardContent className="pt-3 sm:pt-4 px-3"><p className="text-[10px] sm:text-sm text-muted-foreground">{t("um_total")}</p><p className="text-xl sm:text-2xl font-bold">{users.length}</p></CardContent></Card>
+        <Card><CardContent className="pt-3 sm:pt-4 px-3"><p className="text-[10px] sm:text-sm text-muted-foreground">{t("um_pending")}</p><p className="text-xl sm:text-2xl font-bold text-amber-600">{pendingUsers.length}</p></CardContent></Card>
+        <Card><CardContent className="pt-3 sm:pt-4 px-3"><p className="text-[10px] sm:text-sm text-muted-foreground">{t("um_staff")}</p><p className="text-xl sm:text-2xl font-bold text-primary">{users.filter(u => u.roles.includes("staff") || u.roles.includes("admin")).length}</p></CardContent></Card>
+        <Card><CardContent className="pt-3 sm:pt-4 px-3"><p className="text-[10px] sm:text-sm text-muted-foreground">{t("um_customers")}</p><p className="text-xl sm:text-2xl font-bold">{users.filter(u => u.roles.includes("customer") && !u.roles.includes("staff")).length}</p></CardContent></Card>
       </div>
 
       {/* Pending Approvals */}
@@ -154,7 +156,7 @@ const UserManagement = () => {
         <Card className="border-amber-500/50">
           <CardHeader className="pb-2 px-3 sm:px-6">
             <CardTitle className="flex items-center gap-2 text-amber-600 text-sm sm:text-base">
-              <Clock className="h-4 w-4 sm:h-5 sm:w-5" /> Pending ({pendingUsers.length})
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5" /> {t("um_pending")} ({pendingUsers.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto px-3 sm:px-6">
@@ -167,10 +169,10 @@ const UserManagement = () => {
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" className="flex-1 h-8 text-xs gap-1" onClick={() => updateApproval(u.user_id, "approved")}>
-                      <CheckCircle className="h-3 w-3" /> Approve
+                      <CheckCircle className="h-3 w-3" /> {t("um_approve")}
                     </Button>
                     <Button size="sm" variant="destructive" className="flex-1 h-8 text-xs gap-1" onClick={() => updateApproval(u.user_id, "rejected")}>
-                      <XCircle className="h-3 w-3" /> Reject
+                      <XCircle className="h-3 w-3" /> {t("um_reject")}
                     </Button>
                   </div>
                 </div>
@@ -179,10 +181,10 @@ const UserManagement = () => {
             <Table className="hidden sm:table">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Signed Up</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("um_col_name")}</TableHead>
+                  <TableHead>{t("um_col_phone")}</TableHead>
+                  <TableHead>{t("um_col_signed_up")}</TableHead>
+                  <TableHead className="text-right">{t("actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -194,10 +196,10 @@ const UserManagement = () => {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button size="sm" className="h-7 text-xs gap-1" onClick={() => updateApproval(u.user_id, "approved")}>
-                          <CheckCircle className="h-3 w-3" /> Approve
+                          <CheckCircle className="h-3 w-3" /> {t("um_approve")}
                         </Button>
                         <Button size="sm" variant="destructive" className="h-7 text-xs gap-1" onClick={() => updateApproval(u.user_id, "rejected")}>
-                          <XCircle className="h-3 w-3" /> Reject
+                          <XCircle className="h-3 w-3" /> {t("um_reject")}
                         </Button>
                       </div>
                     </TableCell>
@@ -211,10 +213,10 @@ const UserManagement = () => {
 
       {/* All Users */}
       <Card>
-        <CardHeader className="pb-2 px-3 sm:px-6"><CardTitle className="text-sm sm:text-base">All Users ({approvedUsers.length})</CardTitle></CardHeader>
+        <CardHeader className="pb-2 px-3 sm:px-6"><CardTitle className="text-sm sm:text-base">{t("um_all_users")} ({approvedUsers.length})</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto px-3 sm:px-6">
           {loading ? (
-            <p className="text-center py-8 text-muted-foreground">Loading...</p>
+            <p className="text-center py-8 text-muted-foreground">{t("um_loading")}</p>
           ) : (
             <>
               {/* Mobile card view */}
@@ -264,13 +266,13 @@ const UserManagement = () => {
               <Table className="hidden sm:table">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Role</TableHead>
-                    {allowedRoles.length > 0 && <TableHead>Change Role</TableHead>}
-                    {isSuperAdmin && <TableHead>Actions</TableHead>}
-                    <TableHead>Joined</TableHead>
+                    <TableHead>{t("um_col_name")}</TableHead>
+                    <TableHead>{t("um_col_phone")}</TableHead>
+                    <TableHead>{t("um_col_status")}</TableHead>
+                    <TableHead>{t("um_col_role")}</TableHead>
+                    {allowedRoles.length > 0 && <TableHead>{t("um_col_change_role")}</TableHead>}
+                    {isSuperAdmin && <TableHead>{t("actions")}</TableHead>}
+                    <TableHead>{t("um_col_joined")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -309,7 +311,7 @@ const UserManagement = () => {
                           <TableCell>
                             {editable ? (
                               <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive gap-1" onClick={() => removeUser(u.user_id)}>
-                                <Trash2 className="h-3 w-3" /> Remove
+                                <Trash2 className="h-3 w-3" /> {t("um_remove")}
                               </Button>
                             ) : <span className="text-xs text-muted-foreground">—</span>}
                           </TableCell>

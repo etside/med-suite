@@ -52,12 +52,12 @@ const SettingsPage = () => {
         if (data?.id) setSettingsId(data.id);
       }
     } catch (e: any) {
-      toast.error("Failed: " + (e.message || ""));
+      toast.error(t("settings_save_failed") + ": " + (e.message || ""));
       setSaving(false);
       return;
     }
     setSaving(false);
-    toast.success("Settings saved!");
+    toast.success(t("settings_saved"));
   };
 
   const set = (key: string, val: any) => setSettings((s: any) => ({ ...s, [key]: val }));
@@ -70,20 +70,20 @@ const SettingsPage = () => {
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground py-8 text-center">Loading settings…</p>
+        <p className="text-muted-foreground py-8 text-center">{t("loading_data")}</p>
       ) : (
       <>
       {isSuperAdmin && (
         <Card className="border-primary/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Store className="h-5 w-5 text-primary" /> Online Shop</CardTitle>
-            <CardDescription>Enable or disable the public online shop page for customers</CardDescription>
+            <CardTitle className="flex items-center gap-2"><Store className="h-5 w-5 text-primary" /> {t("nav_shop")}</CardTitle>
+            <CardDescription>{t("settings_shop_visibility_desc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-sm">Shop Page Visibility</p>
-                <p className="text-xs text-muted-foreground">When disabled, the shop link is hidden and the page shows a "disabled" message</p>
+                <p className="font-medium text-sm">{t("settings_shop_visibility")}</p>
+                <p className="text-xs text-muted-foreground">{t("settings_shop_visibility_hint")}</p>
               </div>
               <Switch checked={settings.shop_enabled} onCheckedChange={(v) => set("shop_enabled", v)} />
             </div>
@@ -92,13 +92,13 @@ const SettingsPage = () => {
       )}
 
       <Card>
-        <CardHeader><CardTitle>Store Branding & Logo</CardTitle><CardDescription>Upload your pharmacy logo for receipts and branding</CardDescription></CardHeader>
+        <CardHeader><CardTitle>{t("settings_branding")}</CardTitle><CardDescription>{t("settings_branding_desc")}</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-6">
             <ImageUpload currentUrl={settings.logo_url} onUploaded={(url) => set("logo_url", url)} />
             <div>
-              <p className="font-medium">{settings.pharmacy_name || "Your Pharmacy"}</p>
-              <p className="text-sm text-muted-foreground">Logo appears on receipts, invoices & shop page</p>
+              <p className="font-medium">{settings.pharmacy_name || t("settings_your_pharmacy")}</p>
+              <p className="text-sm text-muted-foreground">{t("settings_logo_hint")}</p>
             </div>
           </div>
         </CardContent>
@@ -109,7 +109,7 @@ const SettingsPage = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2"><Label>{t("settings_name")}</Label><Input value={settings.pharmacy_name} onChange={(e) => set("pharmacy_name", e.target.value)} /></div>
-            <div className="space-y-2"><Label>{t("settings_license")}</Label><Input value={settings.license_number} onChange={(e) => set("license_number", e.target.value)} placeholder="Drug License No." /></div>
+            <div className="space-y-2"><Label>{t("settings_license")}</Label><Input value={settings.license_number} onChange={(e) => set("license_number", e.target.value)} placeholder={t("settings_license_ph")} /></div>
             <div className="space-y-2"><Label>{t("settings_phone")}</Label><Input value={settings.phone} onChange={(e) => set("phone", e.target.value)} /></div>
             <div className="space-y-2"><Label>{t("settings_email")}</Label><Input value={settings.email} onChange={(e) => set("email", e.target.value)} /></div>
           </div>
@@ -121,8 +121,8 @@ const SettingsPage = () => {
         <CardHeader><CardTitle>{t("settings_bkash_title")}</CardTitle><CardDescription>{t("settings_bkash_desc")}</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>{t("settings_bkash_number")}</Label><Input value={settings.bkash_number} onChange={(e) => set("bkash_number", e.target.value)} placeholder="01XXXXXXXXX" /></div>
-            <div className="space-y-2"><Label>{t("settings_nagad_number")}</Label><Input value={settings.nagad_number} onChange={(e) => set("nagad_number", e.target.value)} placeholder="01XXXXXXXXX" /></div>
+            <div className="space-y-2"><Label>{t("settings_bkash_number")}</Label><Input value={settings.bkash_number} onChange={(e) => set("bkash_number", e.target.value)} placeholder={t("settings_phone_ph")} /></div>
+            <div className="space-y-2"><Label>{t("settings_nagad_number")}</Label><Input value={settings.nagad_number} onChange={(e) => set("nagad_number", e.target.value)} placeholder={t("settings_phone_ph")} /></div>
           </div>
         </CardContent>
       </Card>

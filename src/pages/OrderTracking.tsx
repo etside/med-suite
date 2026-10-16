@@ -59,7 +59,7 @@ const OrderTracking = () => {
       </Card>
 
       {searched && !order && (
-        <Card><CardContent className="pt-6 text-center text-muted-foreground">Order not found</CardContent></Card>
+        <Card><CardContent className="pt-6 text-center text-muted-foreground">{t("ot_not_found")}</CardContent></Card>
       )}
 
       {order && (

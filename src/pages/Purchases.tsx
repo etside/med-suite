@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Truck, Package, Search } from "lucide-react";
 import { api } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
 const Purchases = () => {
+  const { t } = useLanguage();
   const [orders, setOrders] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,7 +36,7 @@ const Purchases = () => {
       setOrders(po as any[]);
       setSuppliers((sup as any[]).sort((a, b) => String(a.name).localeCompare(String(b.name))));
     } catch (e: unknown) {
-      toast.error("Failed to load purchases: " + (e instanceof Error ? e.message : "Unknown error"));
+      toast.error(t("po_load_failed") + ": " + (e instanceof Error ? e.message : "Unknown error"));
     } finally {
       setLoading(false);
     }
@@ -77,7 +79,7 @@ const Purchases = () => {
 
   const handleCreatePO = async () => {
     if (!newPO.supplier_id || newPO.items.length === 0 || !newPO.items[0].product_id) {
-      toast.error("Select a supplier and at least one product");
+      toast.error(t("po_select_items"));
       return;
     }
     setSaving(true);
@@ -100,12 +102,12 @@ const Purchases = () => {
         })),
       });
     } catch (e: any) {
-      toast.error("Failed: " + (e.message || ""));
+      toast.error(t("error_generic") + ": " + (e.message || ""));
       setSaving(false);
       return;
     }
 
-    toast.success("Purchase Order created: " + poNumber);
+    toast.success(t("po_created") + ": " + poNumber);
     setDialogOpen(false);
     setNewPO({ supplier_id: "", notes: "", items: [{ product_id: "", product_name: "", quantity: 1, unit_cost: 0 }] });
     setSaving(false);
@@ -115,22 +117,22 @@ const Purchases = () => {
   const handleReceive = async (poId: string) => {
     try {
       await api.purchaseOrders.updateStatus(poId, "received");
-      toast.success("PO received! Stock updated automatically.");
+      toast.success(t("po_received"));
       fetchAll();
     } catch (e: any) {
-      toast.error("Failed: " + (e.message || ""));
+      toast.error(t("error_generic") + ": " + (e.message || ""));
     }
   };
 
   const handleAddSupplier = async () => {
-    if (!newSupplier.name.trim()) { toast.error("Supplier name required"); return; }
+    if (!newSupplier.name.trim()) { toast.error(t("po_supplier_required")); return; }
     try {
       await api.suppliers.create(newSupplier);
     } catch (e: any) {
-      toast.error("Failed: " + (e.message || ""));
+      toast.error(t("error_generic") + ": " + (e.message || ""));
       return;
     }
-    toast.success("Supplier added!");
+    toast.success(t("po_supplier_added"));
     setSupplierDialogOpen(false);
     setNewSupplier({ name: "", contact_person: "", phone: "", email: "", address: "" });
     fetchAll();
@@ -140,15 +142,15 @@ const Purchases = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Purchase Orders</h1>
-          <p className="text-muted-foreground">Track medicine purchases from suppliers</p>
+          <h1 className="text-2xl font-bold text-foreground">{t("purchases_title")}</h1>
+          <p className="text-muted-foreground">{t("po_subtitle")}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setSupplierDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />Add Supplier
+            <Plus className="mr-2 h-4 w-4" />{t("po_add_supplier")}
           </Button>
           <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />New Purchase Order
+            <Plus className="mr-2 h-4 w-4" />{t("po_new")}
           </Button>
         </div>
       </div>
@@ -166,24 +168,24 @@ const Purchases = () => {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>All Purchase Orders ({orders.length})</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("purchases_title")} ({orders.length})</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
           <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow>
-                <TableHead>PO Number</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead className="text-right">Total (৳)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Date</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>{t("po_number")}</TableHead>
+                <TableHead>{t("po_supplier")}</TableHead>
+                <TableHead className="text-right">{t("total")} (৳)</TableHead>
+                <TableHead>{t("status")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("po_date")}</TableHead>
+                <TableHead>{t("actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading purchase orders…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t("loading_data")}</TableCell></TableRow>
               ) : orders.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No purchase orders yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t("po_none")}</TableCell></TableRow>
               ) : orders.map((po) => (
                 <TableRow key={po.id}>
                   <TableCell className="font-mono font-medium text-sm">{po.po_number}</TableCell>
@@ -196,7 +198,7 @@ const Purchases = () => {
                   <TableCell>
                     {po.status === "ordered" && (
                       <Button size="sm" variant="outline" onClick={() => handleReceive(po.id)}>
-                        <Truck className="mr-1 h-3 w-3" /> Receive
+                        <Truck className="mr-1 h-3 w-3" /> {t("po_receive")}
                       </Button>
                     )}
                   </TableCell>
@@ -210,32 +212,32 @@ const Purchases = () => {
       {/* New PO Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Purchase Order</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("po_new")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Supplier</Label>
+              <Label>{t("po_supplier")}</Label>
               <Select value={newPO.supplier_id} onValueChange={(v) => setNewPO((po) => ({ ...po, supplier_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("po_select_supplier")} /></SelectTrigger>
                 <SelectContent>
                   {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Items</Label>
+              <Label>{t("po_items")}</Label>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Find product (type 2+ letters)</Label>
+                <Label className="text-xs text-muted-foreground">{t("po_find_hint")}</Label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="h-9 text-xs pl-8" placeholder="Search 22k+ catalog…" value={productQuery} onChange={(e) => setProductQuery(e.target.value)} />
+                  <Input className="h-9 text-xs pl-8" placeholder={t("po_catalog_search")} value={productQuery} onChange={(e) => setProductQuery(e.target.value)} />
                 </div>
-                {searchingProducts && <p className="text-xs text-muted-foreground">Searching…</p>}
+                {searchingProducts && <p className="text-xs text-muted-foreground">{t("po_searching")}</p>}
               </div>
               {newPO.items.map((item, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-5">
                     <Select value={item.product_id} onValueChange={(v) => updateItem(i, "product_id", v)}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={productResults.length ? "Pick from results" : "Search above first"} /></SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={productResults.length ? t("po_pick_results") : t("po_search_first")} /></SelectTrigger>
                       <SelectContent>
                         {productResults.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} — ৳{Number(p.price).toFixed(0)}</SelectItem>)}
                       </SelectContent>
@@ -255,10 +257,10 @@ const Purchases = () => {
                   </div>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={addItem}><Plus className="mr-1 h-3 w-3" /> Add Item</Button>
+              <Button variant="outline" size="sm" onClick={addItem}><Plus className="mr-1 h-3 w-3" /> {t("po_add_item")}</Button>
             </div>
             <div className="space-y-1.5">
-              <Label>Notes</Label>
+              <Label>{t("po_notes")}</Label>
               <Input value={newPO.notes} onChange={(e) => setNewPO((po) => ({ ...po, notes: e.target.value }))} />
             </div>
             <div className="text-right font-bold">
@@ -266,8 +268,8 @@ const Purchases = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreatePO} disabled={saving}>{saving ? "Creating..." : "Create PO"}</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={handleCreatePO} disabled={saving}>{saving ? t("po_searching") : t("po_create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -275,19 +277,19 @@ const Purchases = () => {
       {/* Add Supplier Dialog */}
       <Dialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Supplier</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("po_add_supplier")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1.5"><Label>Company Name *</Label><Input value={newSupplier.name} onChange={(e) => setNewSupplier((s) => ({ ...s, name: e.target.value }))} /></div>
-            <div className="space-y-1.5"><Label>Contact Person</Label><Input value={newSupplier.contact_person} onChange={(e) => setNewSupplier((s) => ({ ...s, contact_person: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>{t("po_company")} *</Label><Input value={newSupplier.name} onChange={(e) => setNewSupplier((s) => ({ ...s, name: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>{t("po_contact_person")}</Label><Input value={newSupplier.contact_person} onChange={(e) => setNewSupplier((s) => ({ ...s, contact_person: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>Phone</Label><Input value={newSupplier.phone} onChange={(e) => setNewSupplier((s) => ({ ...s, phone: e.target.value }))} /></div>
-              <div className="space-y-1.5"><Label>Email</Label><Input value={newSupplier.email} onChange={(e) => setNewSupplier((s) => ({ ...s, email: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>{t("sales_phone")}</Label><Input value={newSupplier.phone} onChange={(e) => setNewSupplier((s) => ({ ...s, phone: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>{t("auth_email")}</Label><Input value={newSupplier.email} onChange={(e) => setNewSupplier((s) => ({ ...s, email: e.target.value }))} /></div>
             </div>
-            <div className="space-y-1.5"><Label>Address</Label><Input value={newSupplier.address} onChange={(e) => setNewSupplier((s) => ({ ...s, address: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>{t("profile_address")}</Label><Input value={newSupplier.address} onChange={(e) => setNewSupplier((s) => ({ ...s, address: e.target.value }))} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSupplierDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddSupplier}>Add Supplier</Button>
+            <Button variant="outline" onClick={() => setSupplierDialogOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={handleAddSupplier}>{t("po_add_supplier")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

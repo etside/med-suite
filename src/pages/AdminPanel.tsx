@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Shield, Users, Package, ShoppingCart, AlertTriangle, TrendingUp, Clock, MessageCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const WHATSAPP_HELP = "https://wa.me/8801873722228?text=Hi%2C%20I%20need%20help%20with%20Medsuite-eT%20platform";
 
 const AdminPanel = () => {
+  const { t } = useLanguage();
   const { isAdmin } = useAuth();
   const [stats, setStats] = useState({ users: 0, products: 0, orders: 0, lowStock: 0, revenue: 0, suppliers: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
@@ -40,16 +42,16 @@ const AdminPanel = () => {
   }, [isAdmin]);
 
   if (!isAdmin) {
-    return <div className="py-20 text-center text-muted-foreground">Access denied. Admin only.</div>;
+    return <div className="py-20 text-center text-muted-foreground">{t("admin_access_denied")}</div>;
   }
 
   const cards = [
-    { title: "Total Users", value: loading ? "…" : stats.users, icon: Users, color: "text-blue-600" },
-    { title: "Pending Approvals", value: loading ? "…" : stats.pending, icon: Clock, color: "text-amber-600" },
-    { title: "Products", value: loading ? "…" : stats.products, icon: Package, color: "text-primary" },
-    { title: "Total Orders", value: loading ? "…" : stats.orders, icon: ShoppingCart, color: "text-amber-600" },
-    { title: "Low Stock Items", value: loading ? "…" : stats.lowStock, icon: AlertTriangle, color: "text-destructive" },
-    { title: "POS Revenue", value: loading ? "…" : "৳" + stats.revenue.toLocaleString(), icon: TrendingUp, color: "text-emerald-600" },
+    { title: t("admin_total_users"), value: loading ? "…" : stats.users, icon: Users, color: "text-blue-600" },
+    { title: t("admin_pending_approvals"), value: loading ? "…" : stats.pending, icon: Clock, color: "text-amber-600" },
+    { title: t("admin_products"), value: loading ? "…" : stats.products, icon: Package, color: "text-primary" },
+    { title: t("admin_total_orders"), value: loading ? "…" : stats.orders, icon: ShoppingCart, color: "text-amber-600" },
+    { title: t("admin_low_stock_items"), value: loading ? "…" : stats.lowStock, icon: AlertTriangle, color: "text-destructive" },
+    { title: t("admin_pos_revenue"), value: loading ? "…" : "৳" + stats.revenue.toLocaleString(), icon: TrendingUp, color: "text-emerald-600" },
   ];
 
   return (
@@ -57,13 +59,13 @@ const AdminPanel = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" /> Admin Panel
+            <Shield className="h-6 w-6 text-primary" /> {t("nav_admin")}
           </h1>
-          <p className="text-muted-foreground">System administration dashboard</p>
+          <p className="text-muted-foreground">{t("admin_subtitle")}</p>
         </div>
         <Button variant="outline" size="sm" className="gap-2" asChild>
           <a href={WHATSAPP_HELP} target="_blank" rel="noopener noreferrer">
-            <MessageCircle className="h-4 w-4 text-green-600" /> WhatsApp Help (+880 1873722228)
+            <MessageCircle className="h-4 w-4 text-green-600" /> {t("um_whatsapp_help")} (+880 1873722228)
           </a>
         </Button>
       </div>
@@ -84,30 +86,30 @@ const AdminPanel = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>System Information</CardTitle>
-          <CardDescription>Medsuite-eT Pharmacy Management v2.0</CardDescription>
+          <CardTitle>{t("admin_sysinfo")}</CardTitle>
+          <CardDescription>{t("admin_version")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Backend</span><Badge variant="secondary">MySQL / PHP API</Badge></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">PHP Fallback</span><Badge variant="outline">Available</Badge></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">PWA Ready</span><Badge>Yes</Badge></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Barcode/QR</span><Badge>JsBarcode + QRCode</Badge></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Thermal Print</span><Badge variant="secondary">80mm Ready</Badge></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Deployment</span><Badge variant="secondary">Netlify / cPanel / Lovable</Badge></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("admin_backend")}</span><Badge variant="secondary">MySQL / PHP API</Badge></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("admin_php_fallback")}</span><Badge variant="outline">{t("admin_available")}</Badge></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("admin_pwa")}</span><Badge>{t("yes")}</Badge></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("admin_barcode_qr")}</span><Badge>JsBarcode + QRCode</Badge></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("admin_thermal")}</span><Badge variant="secondary">80mm Ready</Badge></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">{t("admin_deployment")}</span><Badge variant="secondary">Netlify / cPanel / Lovable</Badge></div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>FAQ & Support</CardTitle>
+          <CardTitle>{t("admin_faq")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <div><p className="font-medium">How to reset a user's password?</p><p className="text-muted-foreground">Users can use "Forgot Password" on the login page. As admin you can change their role from User Management.</p></div>
-          <div><p className="font-medium">How to connect a barcode scanner?</p><p className="text-muted-foreground">Plug in any USB barcode scanner. It acts as a keyboard. Open POS page and scan — product auto-adds to cart.</p></div>
-          <div><p className="font-medium">How to setup thermal printer?</p><p className="text-muted-foreground">Connect an 80mm thermal printer. After a sale, click "Print Receipt". The receipt is optimized for 80mm width.</p></div>
-          <div><p className="font-medium">Platform issues or feature requests?</p>
+          <div><p className="font-medium">{t("admin_faq0_q")}</p><p className="text-muted-foreground">{t("admin_faq0_a")}</p></div>
+          <div><p className="font-medium">{t("admin_faq1_q")}</p><p className="text-muted-foreground">{t("admin_faq1_a")}</p></div>
+          <div><p className="font-medium">{t("admin_faq2_q")}</p><p className="text-muted-foreground">{t("admin_faq2_a")}</p></div>
+          <div><p className="font-medium">{t("admin_faq3_q")}</p>
             <a href={WHATSAPP_HELP} target="_blank" rel="noopener noreferrer" className="text-primary underline">
-              Contact Super Admin via WhatsApp: +8801873722228
+              {t("admin_contact_whatsapp")}
             </a>
           </div>
         </CardContent>

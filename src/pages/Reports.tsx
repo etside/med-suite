@@ -242,7 +242,7 @@ const Reports = () => {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Total POS Revenue</p>
+            <p className="text-sm text-muted-foreground">{t("rep_revenue")}</p>
             <p className="text-2xl font-bold text-primary">
               {loading ? "…" : `৳${totalRevenue.toLocaleString()}`}
             </p>
@@ -250,15 +250,15 @@ const Reports = () => {
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Online Orders</p>
+            <p className="text-sm text-muted-foreground">{t("rep_online_orders")}</p>
             <p className="text-2xl font-bold">{loading ? "…" : totalOrders}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Products Tracked</p>
+            <p className="text-sm text-muted-foreground">{t("rep_products_tracked")}</p>
             <p className="text-2xl font-bold">
-              {loading ? "…" : categoryData.reduce((s, c) => s + c.value, 0)} units
+              {loading ? "…" : categoryData.reduce((s, c) => s + c.value, 0)} {t("sales_units")}
             </p>
           </CardContent>
         </Card>
@@ -266,18 +266,18 @@ const Reports = () => {
 
       <Tabs defaultValue="daily">
         <TabsList className="flex w-full max-w-full flex-wrap h-auto gap-1">
-          <TabsTrigger value="daily" className="flex-1 min-w-[7rem]">Sales Trend</TabsTrigger>
-          <TabsTrigger value="products" className="flex-1 min-w-[7rem]">Top Products</TabsTrigger>
-          <TabsTrigger value="categories" className="flex-1 min-w-[7rem]">Categories</TabsTrigger>
+          <TabsTrigger value="daily" className="flex-1 min-w-[7rem]">{t("rep_sales_trend")}</TabsTrigger>
+          <TabsTrigger value="products" className="flex-1 min-w-[7rem]">{t("rep_top_products")}</TabsTrigger>
+          <TabsTrigger value="categories" className="flex-1 min-w-[7rem]">{t("rep_categories")}</TabsTrigger>
         </TabsList>
         <TabsContent value="daily" className="mt-4">
           <Card>
-            <CardHeader><CardTitle>Daily Sales Trend</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("rep_daily_trend")}</CardTitle></CardHeader>
             <CardContent>
               {loading ? (
                 <div className="h-[300px] animate-pulse rounded-lg bg-muted" />
               ) : salesData.length === 0 ? (
-                <p className="text-center text-muted-foreground py-12">No sales data yet. Complete POS sales to see trends.</p>
+                <p className="text-center text-muted-foreground py-12">{t("rep_none_sales")}</p>
               ) : (
                 <ResponsiveContainer width="100%" height={280} minHeight={240}>
                   <AreaChart data={salesData}>
@@ -294,12 +294,12 @@ const Reports = () => {
         </TabsContent>
         <TabsContent value="products" className="mt-4">
           <Card>
-            <CardHeader><CardTitle>Top Selling Products</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("rep_top_selling")}</CardTitle></CardHeader>
             <CardContent>
               {loading ? (
                 <div className="h-[300px] animate-pulse rounded-lg bg-muted" />
               ) : topProducts.length === 0 ? (
-                <p className="text-center text-muted-foreground py-12">No order data yet.</p>
+                <p className="text-center text-muted-foreground py-12">{t("rep_none_orders")}</p>
               ) : (
                 <ResponsiveContainer width="100%" height={280} minHeight={240}>
                   <BarChart data={topProducts} layout="vertical">
@@ -316,7 +316,7 @@ const Reports = () => {
         </TabsContent>
         <TabsContent value="categories" className="mt-4">
           <Card>
-            <CardHeader><CardTitle>Stock by Category</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("rep_stock_by_cat")}</CardTitle></CardHeader>
             <CardContent>
               {loading ? (
                 <div className="h-[300px] animate-pulse rounded-lg bg-muted" />

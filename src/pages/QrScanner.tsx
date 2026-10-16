@@ -7,11 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Camera, QrCode, Search, Download, Printer, Barcode } from "lucide-react";
 import { api } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { BarcodeGenerator } from "@/components/BarcodeGenerator";
 
 const QrScanner = () => {
+  const { t } = useLanguage();
   const [tab, setTab] = useState("scan");
   const [scanResult, setScanResult] = useState<any>(null);
   const [product, setProduct] = useState<any>(null);
@@ -38,7 +40,7 @@ const QrScanner = () => {
       setProducts(res as any[]);
       return res as any[];
     } catch {
-      toast.error("Search failed — check connection");
+      toast.error(t("qr_search_failed"));
       return [];
     } finally {
       setSearching(false);
@@ -77,13 +79,13 @@ const QrScanner = () => {
           const results = await searchProducts(searchVal, 10);
           const found = results[0] ?? findProduct(searchVal);
           setProduct(found || null);
-          if (found) toast.success("Product found: " + found.name);
-          else toast.info("No product found for: " + decodedText);
+          if (found) toast.success(t("qr_found") + ": " + found.name);
+          else toast.info(t("qr_not_found_coded") + " " + decodedText);
         },
         () => {}
       );
     } catch (e: any) {
-      toast.error("Camera access failed: " + e.message);
+      toast.error(t("qr_camera_failed") + ": " + e.message);
       setScanning(false);
     }
   };
@@ -103,7 +105,7 @@ const QrScanner = () => {
       setProduct(found);
       setScanResult(found.batch_number || found.id);
     } else {
-      toast.error("Product not found");
+      toast.error(t("sales_not_found"));
       setProduct(null);
     }
   };
@@ -130,7 +132,7 @@ const QrScanner = () => {
   };
 
   const generateBulkQRs = async () => {
-    if (bulkSelected.size > 50) { toast.error("Max 50 at a time — print in batches"); return; }
+    if (bulkSelected.size > 50) { toast.error(t("qr_max_bulk")); return; }
     const map = new Map<string, string>();
     for (const id of bulkSelected) {
       const p = products.find((pr) => pr.id === id);
@@ -163,38 +165,38 @@ const QrScanner = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">QR Code & Barcode Scanner</h1>
-        <p className="text-muted-foreground">Scan product QR/barcodes, generate and print in bulk</p>
+        <h1 className="text-2xl font-bold text-foreground">{t("qr_title")}</h1>
+        <p className="text-muted-foreground">{t("qr_subtitle")}</p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex-wrap">
-          <TabsTrigger value="scan"><Camera className="mr-1 h-4 w-4" /> Scan</TabsTrigger>
-          <TabsTrigger value="generate"><QrCode className="mr-1 h-4 w-4" /> QR Generate</TabsTrigger>
-          <TabsTrigger value="bulk"><Printer className="mr-1 h-4 w-4" /> Bulk Print</TabsTrigger>
+          <TabsTrigger value="scan"><Camera className="mr-1 h-4 w-4" /> {t("qr_scan_tab")}</TabsTrigger>
+          <TabsTrigger value="generate"><QrCode className="mr-1 h-4 w-4" /> {t("qr_qr_generate")}</TabsTrigger>
+          <TabsTrigger value="bulk"><Printer className="mr-1 h-4 w-4" /> {t("qr_bulk_print")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="scan" className="space-y-4 mt-4">
           <Card>
-            <CardHeader><CardTitle>Camera Scanner (QR + Barcode)</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("qr_camera_title")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-xs text-muted-foreground">Works on mobile cameras. Supports both QR codes and barcodes. Point camera at the code.</p>
+              <p className="text-xs text-muted-foreground">{t("qr_hint")}</p>
               <div id="qr-reader" className="w-full max-w-md mx-auto rounded-lg overflow-hidden" />
               <div className="flex gap-2 justify-center">
                 {!scanning ? (
-                  <Button onClick={startScanner}><Camera className="mr-2 h-4 w-4" /> Start Scanner</Button>
+                  <Button onClick={startScanner}><Camera className="mr-2 h-4 w-4" /> {t("qr_start")}</Button>
                 ) : (
-                  <Button variant="destructive" onClick={stopScanner}>Stop Scanner</Button>
+                  <Button variant="destructive" onClick={stopScanner}>{t("qr_stop")}</Button>
                 )}
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Manual Lookup</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("qr_manual")}</CardTitle></CardHeader>
             <CardContent>
               <div className="flex gap-2">
-                <Input placeholder="Enter batch number or product name..." value={manualSearch}
+                <Input placeholder={t("qr_manual_ph")} value={manualSearch}
                   onChange={(e) => setManualSearch(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleManualSearch()} />
                 <Button onClick={handleManualSearch}><Search className="h-4 w-4" /></Button>
@@ -204,17 +206,17 @@ const QrScanner = () => {
 
           {product && (
             <Card>
-              <CardHeader><CardTitle>Product Found ✅</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t("qr_product_found")}</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><p className="text-muted-foreground text-xs">Name</p><p className="font-medium">{product.name}</p></div>
-                  <div><p className="text-muted-foreground text-xs">Generic</p><p>{product.generic_name}</p></div>
-                  <div><p className="text-muted-foreground text-xs">Price</p><p className="font-bold text-primary">৳{Number(product.price).toFixed(2)}</p></div>
-                  <div><p className="text-muted-foreground text-xs">Stock</p>
+                  <div><p className="text-muted-foreground text-xs">{t("prod_name")}</p><p className="font-medium">{product.name}</p></div>
+                  <div><p className="text-muted-foreground text-xs">{t("prod_generic")}</p><p>{product.generic_name}</p></div>
+                  <div><p className="text-muted-foreground text-xs">{t("price")}</p><p className="font-bold text-primary">৳{Number(product.price).toFixed(2)}</p></div>
+                  <div><p className="text-muted-foreground text-xs">{t("prod_stock")}</p>
                     <Badge variant={product.stock === 0 ? "destructive" : product.stock < product.min_stock ? "outline" : "secondary"}>{product.stock}</Badge>
                   </div>
-                  <div><p className="text-muted-foreground text-xs">Batch</p><p className="font-mono">{product.batch_number}</p></div>
-                  <div><p className="text-muted-foreground text-xs">Expiry</p><p>{product.expiry_date || "N/A"}</p></div>
+                  <div><p className="text-muted-foreground text-xs">{t("prod_batch")}</p><p className="font-mono">{product.batch_number}</p></div>
+                  <div><p className="text-muted-foreground text-xs">{t("prod_expiry")}</p><p>{product.expiry_date || t("qr_na")}</p></div>
                 </div>
                 <div className="mt-3">
                   <BarcodeGenerator value={product.batch_number || String(product.id).slice(0, 12)} height={40} />
@@ -226,26 +228,26 @@ const QrScanner = () => {
 
         <TabsContent value="generate" className="space-y-4 mt-4">
           <Card>
-            <CardHeader><CardTitle>Generate QR Code</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("qr_generate")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">Search the catalog, then pick a product to generate its QR code.</p>
+              <p className="text-sm text-muted-foreground">{t("qr_generate_hint")}</p>
               <div className="flex gap-2">
-                <Input placeholder="Type 2+ letters to search…" value={genQuery}
+                <Input placeholder={t("qr_type_search")} value={genQuery}
                   onChange={(e) => { setGenQuery(e.target.value); searchProducts(e.target.value, 30); }}
                   onKeyDown={(e) => e.key === "Enter" && searchProducts(genQuery, 30)} />
                 <Button onClick={() => searchProducts(genQuery, 30)} disabled={searching}><Search className="h-4 w-4" /></Button>
               </div>
-              {searching && <p className="text-xs text-muted-foreground">Searching…</p>}
+              {searching && <p className="text-xs text-muted-foreground">{t("po_searching")}</p>}
               <div className="grid gap-2 max-h-60 overflow-y-auto">
                 {products.length === 0 && !searching && (
-                  <p className="text-xs text-muted-foreground py-4 text-center">No results — search above (max 30 shown)</p>
+                  <p className="text-xs text-muted-foreground py-4 text-center">{t("qr_no_results")}</p>
                 )}
                 {products.slice(0, 30).map((p) => (
                   <button key={p.id} onClick={() => generateQR(p)}
                     className={`flex items-center justify-between p-3 rounded-lg border text-left transition-colors ${selectedProduct?.id === p.id ? "border-primary bg-accent" : "border-border hover:bg-accent/50"}`}>
                     <div>
                       <p className="font-medium text-sm">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.batch_number || "No batch"}</p>
+                      <p className="text-xs text-muted-foreground">{p.batch_number || t("qr_no_batch")}</p>
                     </div>
                     <span className="text-sm font-bold text-primary">৳{Number(p.price).toFixed(2)}</span>
                   </button>
@@ -261,7 +263,7 @@ const QrScanner = () => {
                 <p className="font-medium">{selectedProduct.name}</p>
                 <p className="text-xs text-muted-foreground font-mono">{selectedProduct.batch_number}</p>
                 <div className="flex gap-2">
-                  <Button onClick={downloadQR}><Download className="mr-2 h-4 w-4" /> Download QR</Button>
+                  <Button onClick={downloadQR}><Download className="mr-2 h-4 w-4" /> {t("qr_download")}</Button>
                 </div>
               </CardContent>
             </Card>
@@ -270,10 +272,10 @@ const QrScanner = () => {
 
         <TabsContent value="bulk" className="space-y-4 mt-4">
           <Card>
-            <CardHeader><CardTitle>Bulk QR Code Generation & Print</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("qr_bulk")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-2">
-                <Input placeholder="Search to select for bulk print…" value={bulkQuery}
+                <Input placeholder={t("qr_bulk_search_ph")} value={bulkQuery}
                   onChange={(e) => { setBulkQuery(e.target.value); searchProducts(e.target.value, 50); }}
                   onKeyDown={(e) => e.key === "Enter" && searchProducts(bulkQuery, 50)} />
                 <Button onClick={() => searchProducts(bulkQuery, 50)} disabled={searching}><Search className="h-4 w-4" /></Button>
@@ -284,11 +286,11 @@ const QrScanner = () => {
                     if (bulkSelected.size === products.length) setBulkSelected(new Set());
                     else setBulkSelected(new Set(products.map((p) => p.id)));
                   }} />
-                <span className="text-sm font-medium">Select shown ({bulkSelected.size}/{products.length})</span>
+                <span className="text-sm font-medium">{t("qr_select_shown")} ({bulkSelected.size}/{products.length})</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                 {products.length === 0 && !searching && (
-                  <p className="col-span-full text-xs text-muted-foreground py-4 text-center">Search above to pick items (max 50 shown)</p>
+                  <p className="col-span-full text-xs text-muted-foreground py-4 text-center">{t("qr_bulk_empty")}</p>
                 )}
                 {products.slice(0, 50).map((p) => (
                   <label key={p.id} className="flex items-center gap-2 p-2 border rounded cursor-pointer text-xs hover:bg-accent/50">
@@ -299,11 +301,11 @@ const QrScanner = () => {
               </div>
               <div className="flex gap-2">
                 <Button onClick={generateBulkQRs} disabled={bulkSelected.size === 0}>
-                  <QrCode className="mr-2 h-4 w-4" /> Generate {bulkSelected.size} QR Codes
+                  <QrCode className="mr-2 h-4 w-4" /> {t("qr_generate")} {bulkSelected.size} {t("qr_codes")}
                 </Button>
                 {bulkQRs.size > 0 && (
                   <Button variant="outline" onClick={printBulkQRs}>
-                    <Printer className="mr-2 h-4 w-4" /> Print All
+                    <Printer className="mr-2 h-4 w-4" /> {t("qr_print_all")}
                   </Button>
                 )}
               </div>

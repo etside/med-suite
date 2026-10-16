@@ -1,27 +1,29 @@
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Store, ShoppingCart, ClipboardCheck, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useShopEnabled } from "@/hooks/use-shop-enabled";
 import { isNavActive } from "@/lib/navActive";
 
 export function MobileNav() {
   const location = useLocation();
   const { isStaff } = useAuth();
+  const { t } = useLanguage();
   const shopEnabled = useShopEnabled();
 
   const staffItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Home" },
-    { href: "/sales", icon: ShoppingCart, label: "POS" },
-    { href: "/admin/orders", icon: ClipboardCheck, label: "Orders" },
-    ...(shopEnabled ? [{ href: "/shop", icon: Store, label: "Shop" }] : []),
-    { href: "/profile", icon: User, label: "Profile" },
+    { href: "/dashboard", icon: LayoutDashboard, label: t("nav_home") },
+    { href: "/sales", icon: ShoppingCart, label: t("nav_pos") },
+    { href: "/admin/orders", icon: ClipboardCheck, label: t("nav_orders") },
+    ...(shopEnabled ? [{ href: "/shop", icon: Store, label: t("nav_shop") }] : []),
+    { href: "/profile", icon: User, label: t("nav_profile") },
   ];
 
   const customerItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Home" },
-    ...(shopEnabled ? [{ href: "/shop", icon: Store, label: "Shop" }] : []),
-    { href: "/track-order", icon: ClipboardCheck, label: "Orders" },
-    { href: "/profile", icon: User, label: "Profile" },
+    { href: "/dashboard", icon: LayoutDashboard, label: t("nav_home") },
+    ...(shopEnabled ? [{ href: "/shop", icon: Store, label: t("nav_shop") }] : []),
+    { href: "/track-order", icon: ClipboardCheck, label: t("nav_orders") },
+    { href: "/profile", icon: User, label: t("nav_profile") },
   ];
 
   const items = isStaff ? staffItems : customerItems;

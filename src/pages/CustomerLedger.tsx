@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Users, Eye } from "lucide-react";
 import { api } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
 interface CustomerData {
@@ -20,6 +21,7 @@ interface CustomerData {
 }
 
 const CustomerLedger = () => {
+  const { t } = useLanguage();
   const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
@@ -36,7 +38,7 @@ const CustomerLedger = () => {
     try {
       [profiles, orderData] = await Promise.all([api.profiles.list(), api.orders.list()]);
     } catch (e: unknown) {
-      toast.error("Failed to load ledger: " + (e instanceof Error ? e.message : "Unknown error"));
+      toast.error(t("cl_load_failed") + ": " + (e instanceof Error ? e.message : "Unknown error"));
       return;
     }
     if (!profiles.length) return;
@@ -82,24 +84,24 @@ const CustomerLedger = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Users className="h-6 w-6 text-primary" /> Customer Ledger
+          <Users className="h-6 w-6 text-primary" /> {t("nav_customer_ledger")}
         </h1>
-        <p className="text-muted-foreground">Purchase history, total spent, and due amounts</p>
+        <p className="text-muted-foreground">{t("cl_subtitle")}</p>
       </div>
 
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
-        <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Total Customers</p><p className="text-2xl font-bold">{customers.length}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Total Revenue</p><p className="text-2xl font-bold text-primary">৳{customers.reduce((s, c) => s + c.total_spent, 0).toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Total Due</p><p className="text-2xl font-bold text-destructive">৳{customers.reduce((s, c) => s + c.due, 0).toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">{t("cl_total_customers")}</p><p className="text-2xl font-bold">{customers.length}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">{t("cl_total_revenue")}</p><p className="text-2xl font-bold text-primary">৳{customers.reduce((s, c) => s + c.total_spent, 0).toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">{t("cl_total_due")}</p><p className="text-2xl font-bold text-destructive">৳{customers.reduce((s, c) => s + c.due, 0).toLocaleString()}</p></CardContent></Card>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Customer Accounts ({filtered.length})</CardTitle>
+            <CardTitle>{t("cl_accounts")} ({filtered.length})</CardTitle>
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search customer..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input placeholder={t("cl_search_ph")} className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
           </div>
         </CardHeader>
@@ -107,13 +109,13 @@ const CustomerLedger = () => {
           <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead className="hidden sm:table-cell">Phone</TableHead>
-                <TableHead className="text-right">Orders</TableHead>
-                <TableHead className="text-right">Total Spent</TableHead>
-                <TableHead className="text-right">Paid</TableHead>
-                <TableHead className="text-right">Due</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("cl_customer")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("sales_phone")}</TableHead>
+                <TableHead className="text-right">{t("cl_orders")}</TableHead>
+                <TableHead className="text-right">{t("cl_total_spent")}</TableHead>
+                <TableHead className="text-right">{t("cl_paid")}</TableHead>
+                <TableHead className="text-right">{t("cl_due")}</TableHead>
+                <TableHead className="text-right">{t("actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -142,7 +144,7 @@ const CustomerLedger = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Order History — {selectedCustomer?.name}</DialogTitle>
+            <DialogTitle>{t("cl_order_history")} — {selectedCustomer?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             {orders.map((o) => (
@@ -157,7 +159,7 @@ const CustomerLedger = () => {
                 </div>
               </div>
             ))}
-            {orders.length === 0 && <p className="text-center text-muted-foreground py-4">No orders found</p>}
+            {orders.length === 0 && <p className="text-center text-muted-foreground py-4">{t("cl_no_orders")}</p>}
           </div>
         </DialogContent>
       </Dialog>

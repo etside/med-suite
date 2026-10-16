@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Edit, Eye } from "lucide-react";
 import { api } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
 interface CMSContent {
@@ -26,6 +27,8 @@ interface CMSContent {
 }
 
 const CMS = () => {
+  const { t } = useLanguage();
+  const catLabel = (c: string) => c === "blog" ? t("cms_blog") : c === "announcement" ? t("cms_announcement") : c === "help" ? t("cms_help") : t("cms_faq");
   const [contents, setContents] = useState<CMSContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,7 +54,7 @@ const CMS = () => {
       });
       setContents([...(pub as any[]).map(map), ...(draft as any[]).map(map)]);
     } catch {
-      toast.error("Failed to load content");
+      toast.error(t("cms_load_failed"));
     } finally {
       setLoading(false);
     }
@@ -85,15 +88,15 @@ const CMS = () => {
         };
         if (editingId) {
           await api.cms.update(editingId, payload);
-          toast.success("Content updated");
+          toast.success(t("cms_updated"));
           setEditingId(null);
         } else {
           await api.cms.create(payload);
-          toast.success("Content published");
+          toast.success(t("cms_published"));
         }
         await fetchContents();
       } catch (e: any) {
-        toast.error("Save failed: " + (e.message || ""));
+        toast.error(t("cms_save_failed") + ": " + (e.message || ""));
         setSaving(false);
         return;
       }
@@ -121,9 +124,9 @@ const CMS = () => {
     try {
       await api.cms.delete(id);
       setContents(contents.filter((c) => c.id !== id));
-      toast.success("Content deleted");
+      toast.success(t("cms_deleted"));
     } catch (e: any) {
-      toast.error("Delete failed: " + (e.message || ""));
+      toast.error(t("cms_delete_failed") + ": " + (e.message || ""));
     }
   };
 
@@ -145,16 +148,16 @@ const CMS = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Content Management System</h1>
-        <p className="text-muted-foreground">Manage your blog, announcements, and help content</p>
+        <h1 className="text-3xl font-bold">{t("cms_title")}</h1>
+        <p className="text-muted-foreground">{t("cms_subtitle")}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="blog">Blog</TabsTrigger>
-          <TabsTrigger value="announcement">Announcements</TabsTrigger>
-          <TabsTrigger value="help">Help</TabsTrigger>
-          <TabsTrigger value="faq">FAQ</TabsTrigger>
+          <TabsTrigger value="blog">{t("cms_blog")}</TabsTrigger>
+          <TabsTrigger value="announcement">{t("cms_announcement")}</TabsTrigger>
+          <TabsTrigger value="help">{t("cms_help")}</TabsTrigger>
+          <TabsTrigger value="faq">{t("cms_faq")}</TabsTrigger>
         </TabsList>
 
         {/* Content List Views */}
@@ -162,7 +165,7 @@ const CMS = () => {
           <TabsContent key={category} value={category} className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold capitalize">
-                {category === "faq" ? "FAQs" : category + "s"}
+                {catLabel(category)}
               </h2>
               <Button
                 onClick={() => {
@@ -172,7 +175,7 @@ const CMS = () => {
                 className="bg-gradient-to-r from-emerald-600 to-cyan-600"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                New {category}
+                {t("cms_new")} {catLabel(category)}
               </Button>
             </div>
 
@@ -184,11 +187,11 @@ const CMS = () => {
             >
               {loading ? (
                 <Card className="p-8 text-center text-muted-foreground">
-                  Loading content…
+                  {t("cms_loading")}
                 </Card>
               ) : filteredContents.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
-                  No {category}s yet. Create one to get started!
+                  {t("cms_none_prefix")} {catLabel(category)} {t("cms_none_suffix")}
                 </Card>
               ) : (
                 filteredContents.map((content) => (
@@ -206,7 +209,7 @@ const CMS = () => {
                                     : "secondary"
                                 }
                               >
-                                {content.status}
+                                {content.status === "published" ? t("cms_published_status") : t("cms_draft")}
                               </Badge>
                             </CardTitle>
                             <CardDescription className="mt-2">
@@ -224,14 +227,14 @@ const CMS = () => {
                             onClick={() => handleEdit(content)}
                           >
                             <Edit className="h-4 w-4 mr-2" />
-                            Edit
+                            {t("edit")}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                           >
                             <Eye className="h-4 w-4 mr-2" />
-                            Preview
+                            {t("cms_preview")}
                           </Button>
                           <Button
                             size="sm"
@@ -239,7 +242,7 @@ const CMS = () => {
                             onClick={() => handleDelete(content.id)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
+                            {t("delete")}
                           </Button>
                         </div>
                       </CardContent>
@@ -256,24 +259,24 @@ const CMS = () => {
           <Card>
             <CardHeader>
               <CardTitle>
-                {editingId ? "Edit Content" : "Create New Content"}
+                {editingId ? t("cms_edit_content") : t("cms_create_new")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
+                  <Label htmlFor="title">{t("cms_title_star")}</Label>
                   <Input
                     id="title"
                     value={formData.title || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, title: e.target.value })
                     }
-                    placeholder="Content title"
+                    placeholder={t("cms_content_title")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="slug">Slug</Label>
+                  <Label htmlFor="slug">{t("cms_slug")}</Label>
                   <Input
                     id="slug"
                     value={formData.slug || ""}
@@ -287,7 +290,7 @@ const CMS = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">{t("cms_category")}</Label>
                   <select
                     id="category"
                     value={formData.category || "blog"}
@@ -299,14 +302,14 @@ const CMS = () => {
                     }
                     className="w-full px-3 py-2 border border-input rounded-md bg-background"
                   >
-                    <option value="blog">Blog</option>
-                    <option value="announcement">Announcement</option>
-                    <option value="help">Help</option>
-                    <option value="faq">FAQ</option>
+                    <option value="blog">{t("cms_blog")}</option>
+                    <option value="announcement">{t("cms_announcement")}</option>
+                    <option value="help">{t("cms_help")}</option>
+                    <option value="faq">{t("cms_faq")}</option>
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
+                  <Label htmlFor="status">{t("status")}</Label>
                   <select
                     id="status"
                     value={formData.status || "draft"}
@@ -318,34 +321,34 @@ const CMS = () => {
                     }
                     className="w-full px-3 py-2 border border-input rounded-md bg-background"
                   >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
+                    <option value="draft">{t("cms_draft")}</option>
+                    <option value="published">{t("cms_published_status")}</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="excerpt">Excerpt</Label>
+                <Label htmlFor="excerpt">{t("cms_excerpt")}</Label>
                 <Textarea
                   id="excerpt"
                   value={formData.excerpt || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, excerpt: e.target.value })
                   }
-                  placeholder="Brief description (optional)"
+                  placeholder={t("cms_excerpt_ph")}
                   rows={2}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="content">Content *</Label>
+                <Label htmlFor="content">{t("cms_content_star")}</Label>
                 <Textarea
                   id="content"
                   value={formData.content || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, content: e.target.value })
                   }
-                  placeholder="Your content here... (supports markdown)"
+                  placeholder={t("cms_content_ph")}
                   rows={8}
                 />
               </div>
@@ -367,14 +370,14 @@ const CMS = () => {
                     setActiveTab("blog");
                   }}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button
                   onClick={handleAdd}
                   disabled={saving}
                   className="bg-gradient-to-r from-emerald-600 to-cyan-600"
                 >
-                  {saving ? "Saving…" : editingId ? "Update Content" : "Create Content"}
+                  {saving ? t("saving") : editingId ? t("cms_update_content") : t("cms_create_content")}
                 </Button>
               </div>
             </CardContent>

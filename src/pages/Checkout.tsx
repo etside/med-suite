@@ -50,7 +50,7 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (!user) { toast.error("Please login to place an order"); navigate("/auth"); return; }
+    if (!user) { toast.error(t("checkout_login")); navigate("/auth"); return; }
     if (paymentMethod !== "cod" && !trxId.trim()) {
       toast.error(lang === "bn" ? "ট্রানজেকশন আইডি দিন" : "Please enter Transaction ID");
       return;
@@ -80,7 +80,7 @@ const Checkout = () => {
       setStep("success");
       clearCart();
     } catch (e: any) {
-      toast.error("Failed to place order: " + (e.message || "Unknown error"));
+      toast.error(t("checkout_failed") + ": " + (e.message || "Unknown error"));
     }
     setLoading(false);
     toast.success(t("pay_order_success"));
@@ -140,7 +140,7 @@ const Checkout = () => {
           ))}
           <Separator />
           <div className="flex justify-between text-sm"><span>{t("sales_subtotal")}</span><span>৳{subtotal.toFixed(2)}</span></div>
-          {deliveryFee > 0 && <div className="flex justify-between text-sm"><span>Delivery Fee</span><span>৳{deliveryFee.toFixed(2)}</span></div>}
+          {deliveryFee > 0 && <div className="flex justify-between text-sm"><span>{t("checkout_delivery_fee")}</span><span>৳{deliveryFee.toFixed(2)}</span></div>}
           <div className="flex justify-between font-bold text-lg"><span>{t("sales_total")}</span><span className="text-primary">৳{total.toFixed(2)}</span></div>
         </CardContent>
       </Card>
