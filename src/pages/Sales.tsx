@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,50 @@ function unitInfo(p: any, unit: Unit) {
   return { price: prices.pcs, pcs_each: 1, prices, pcsPer };
 }
 
+/**
+ * Memoized product row. Props are stable (product object identity + a stable
+ * onAdd callback), so adding items to the cart does NOT re-render the grid —
+ * critical for smooth rapid scanning during a large sell.
+ */
+const ProductRow = memo(function ProductRow({
+  product: p,
+  onAdd,
+}: {
+  product: any;
+  onAdd: (p: any, unit: Unit) => void;
+}) {
+  const { t } = useLanguage();
+  const ui = unitInfo(p, "pcs");
+  const isService = p.category === "service";
+  const out = !isService && p.stock <= 0;
+  return (
+    <div className={`flex items-center justify-between p-2.5 rounded-lg border border-border text-left transition-colors ${out ? "opacity-50" : ""}`}>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-xs sm:text-sm text-foreground truncate">{p.name}</p>
+        <p className="text-[10px] text-muted-foreground truncate">{p.generic_name}</p>
+        {isService
+          ? <Badge variant="outline" className="text-[9px] mt-0.5">{t("sales_service")}</Badge>
+          : <Badge variant={p.stock === 0 ? "destructive" : p.stock < 20 ? "outline" : "secondary"} className="text-[9px] mt-0.5">{p.stock} {t("sales_pcs_short")}</Badge>}
+      </div>
+      <div className="flex items-center gap-1 shrink-0 ml-2">
+        <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => onAdd(p, "pcs")}>
+          {t("sales_pcs")} ৳{ui.prices.pcs.toFixed(0)}
+        </Button>
+        {!isService && ui.prices.leaf > 0 && ui.pcsPer.leaf > 1 && (
+          <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => onAdd(p, "leaf")}>
+            {t("sales_leaf")} ৳{ui.prices.leaf.toFixed(0)}
+          </Button>
+        )}
+        {!isService && ui.prices.box > 0 && ui.pcsPer.box > 1 && (
+          <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => onAdd(p, "box")}>
+            {t("sales_box")} ৳{ui.prices.box.toFixed(0)}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+});
+
 const Sales = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -66,6 +110,11 @@ const Sales = () => {
   const searchRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const scanStreamRef = useRef<MediaStream | null>(null);
+  // Mirrors the latest cart synchronously so rapid scanner events never lose an add.
+  const cartRef = useRef<CartItem[]>([]);
+  const tRef = useRef(t);
+  tRef.current = t;
+  const commitCart = (next: CartItem[]) => { cartRef.current = next; setCart(next); };
 
   // Debounce the search box → server query at most every 300ms.
   useEffect(() => {
@@ -109,7 +158,7 @@ const Sales = () => {
         buffer = "";
         const found = await lookupRef.current(code);
         if (found) addToCartRef.current(found);
-        else toast.error(t("sales_not_found") + ": " + code);
+        else toast.error(tRef.current("sales_not_found") + ": " + code);
         return;
       }
       if (e.key.length === 1) {
@@ -145,8 +194,8 @@ const Sales = () => {
               for (const barcode of barcodes) {
                 const code = barcode.rawValue;
                 const found = await lookupRef.current(code);
-                if (found) { addToCartRef.current(found); toast.success(`${t("sales_scanned")}: ${found.name}`); }
-                else toast.error(t("sales_not_found") + ": " + code);
+                if (found) { addToCartRef.current(found); toast.success(`${tRef.current("sales_scanned")}: ${found.name}`); }
+                else toast.error(tRef.current("sales_not_found") + ": " + code);
               }
               stopScanner();
               return;
@@ -174,36 +223,41 @@ const Sales = () => {
 
   const filtered = products;
 
-  // Total pieces already reserved for a product across all its cart lines.
-  const reservedPcs = (productId: string) =>
-    cart.reduce((s, i) => (i.productId === productId ? s + i.qty * i.pcs_each : s), 0);
-
   const addToCart = (product: any, unit: Unit = "pcs") => {
     const { price, pcs_each, prices, pcsPer } = unitInfo(product, unit);
     const lineId = product.id + ":" + unit;
+    const current = cartRef.current;
     if (product.category !== "service") {
-      if (reservedPcs(product.id) + pcs_each > (product.stock || 0)) { toast.error(t("sales_not_enough_stock")); return; }
+      const reserved = current.reduce((s, i) => (i.productId === product.id ? s + i.qty * i.pcs_each : s), 0);
+      if (reserved + pcs_each > (product.stock || 0)) { toast.error(t("sales_not_enough_stock")); return; }
     }
-    const existing = cart.find((i) => i.id === lineId);
-    if (existing) {
-      setCart(cart.map((i) => (i.id === lineId ? { ...i, qty: i.qty + 1 } : i)));
-    } else {
-      setCart([...cart, { id: lineId, productId: product.id, name: product.name, price, qty: 1, pcs_each, unit, category: product.category, prices, pcsPer }]);
-    }
+    const existing = current.find((i) => i.id === lineId);
+    const next = existing
+      ? current.map((i) => (i.id === lineId ? { ...i, qty: i.qty + 1 } : i))
+      : [...current, { id: lineId, productId: product.id, name: product.name, price, qty: 1, pcs_each, unit, category: product.category, prices, pcsPer }];
+    commitCart(next);
   };
   addToCartRef.current = addToCart;
 
+  // Stable identity so memoized ProductRow instances don't re-render on cart updates.
+  const handleAdd = useCallback((p: any, unit: Unit) => addToCartRef.current(p, unit), []);
+
   const updateQty = (id: string, delta: number) => {
-    setCart(cart.map((i) => (i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)).filter((i) => i.qty > 0));
+    commitCart(
+      cartRef.current
+        .map((i) => (i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i))
+        .filter((i) => i.qty > 0)
+    );
   };
 
-  const removeLine = (id: string) => setCart(cart.filter((i) => i.id !== id));
+  const removeLine = (id: string) => commitCart(cartRef.current.filter((i) => i.id !== id));
 
   // Switch the unit of an existing cart line (re-prices and re-converts pcs).
   const changeUnit = (item: CartItem, unit: Unit) => {
     if (unit === item.unit) return;
     const newId = item.productId + ":" + unit;
-    const other = cart.filter((i) => i.id !== item.id);
+    const current = cartRef.current;
+    const other = current.filter((i) => i.id !== item.id);
     const merged = other.find((i) => i.id === newId);
     const qty = item.qty + (merged?.qty || 0);
     const base = other.filter((i) => i.id !== newId);
@@ -211,7 +265,7 @@ const Sales = () => {
       { price: item.prices.pcs, price_leaf: item.prices.leaf, price_box: item.prices.box, pcs_per_leaf: item.pcsPer.leaf, leaves_per_box: item.pcsPer.box / item.pcsPer.leaf },
       unit
     );
-    setCart([...base, { id: newId, productId: item.productId, name: item.name, price, qty, pcs_each, unit, category: item.category, prices, pcsPer }]);
+    commitCart([...base, { id: newId, productId: item.productId, name: item.name, price, qty, pcs_each, unit, category: item.category, prices, pcsPer }]);
   };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -253,7 +307,7 @@ const Sales = () => {
 
     setLastInvoice({ invoiceNumber, date: new Date().toLocaleDateString("en-GB"), customerName, customerPhone, items, subtotal, discount, vat: vatAmount, total, paymentMethod });
     toast.success(`${t("sales_completed")}: ${invoiceNumber}`);
-    setCart([]); setDiscount(0); setCustomerName("Walk-in Customer"); setCustomerPhone(""); setLoading(false);
+    commitCart([]); setDiscount(0); setCustomerName("Walk-in Customer"); setCustomerPhone(""); setLoading(false);
     fetchProducts();
   };
 
@@ -325,38 +379,9 @@ const Sales = () => {
               ))
             ) : filtered.length === 0 ? (
               <p className="col-span-full py-8 text-center text-xs text-muted-foreground">{t("sales_no_products")}</p>
-            ) : filtered.map((p) => {
-              const ui = unitInfo(p, "pcs");
-              const isService = p.category === "service";
-              const out = !isService && p.stock <= 0;
-              return (
-              <div key={p.id}
-                className={`flex items-center justify-between p-2.5 rounded-lg border border-border text-left transition-colors ${out ? "opacity-50" : ""}`}>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-xs sm:text-sm text-foreground truncate">{p.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{p.generic_name}</p>
-                  {isService
-                    ? <Badge variant="outline" className="text-[9px] mt-0.5">{t("sales_service")}</Badge>
-                    : <Badge variant={p.stock === 0 ? "destructive" : p.stock < 20 ? "outline" : "secondary"} className="text-[9px] mt-0.5">{p.stock} {t("sales_pcs_short")}</Badge>}
-                </div>
-                <div className="flex items-center gap-1 shrink-0 ml-2">
-                  <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => addToCart(p, "pcs")}>
-                    {t("sales_pcs")} ৳{ui.prices.pcs.toFixed(0)}
-                  </Button>
-                  {!isService && ui.prices.leaf > 0 && ui.pcsPer.leaf > 1 && (
-                    <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => addToCart(p, "leaf")}>
-                      {t("sales_leaf")} ৳{ui.prices.leaf.toFixed(0)}
-                    </Button>
-                  )}
-                  {!isService && ui.prices.box > 0 && ui.pcsPer.box > 1 && (
-                    <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => addToCart(p, "box")}>
-                      {t("sales_box")} ৳{ui.prices.box.toFixed(0)}
-                    </Button>
-                  )}
-                </div>
-              </div>
-              );
-            })}
+            ) : filtered.map((p) => (
+              <ProductRow key={p.id} product={p} onAdd={handleAdd} />
+            ))}
           </div>
         </div>
 
