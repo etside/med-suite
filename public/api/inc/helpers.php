@@ -184,6 +184,25 @@ function db_has_column(PDO $pdo, string $table, string $col): bool
     return (bool) $pdo->query("SHOW COLUMNS FROM `$table` LIKE " . $pdo->quote($col))->fetch();
 }
 
+/**
+ * Ensure the products table has the box/leaf/pcs unit + pricing columns.
+ * Idempotent and driver-aware (MySQL + SQLite). Runs only on writes/migrate.
+ */
+function ensure_products_unit_schema(PDO $pdo): void
+{
+    $cols = [
+        'pcs_per_leaf' => 'INT NOT NULL DEFAULT 1',
+        'leaves_per_box' => 'INT NOT NULL DEFAULT 1',
+        'price_leaf' => 'DECIMAL(10,2) NOT NULL DEFAULT 0',
+        'price_box' => 'DECIMAL(10,2) NOT NULL DEFAULT 0',
+    ];
+    foreach ($cols as $name => $def) {
+        if (!db_has_column($pdo, 'products', $name)) {
+            $pdo->exec("ALTER TABLE products ADD COLUMN `$name` $def");
+        }
+    }
+}
+
 function db_fk_off(PDO $pdo): void
 {
     if (db_is_sqlite($pdo)) {

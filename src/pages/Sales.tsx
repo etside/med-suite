@@ -14,12 +14,35 @@ import { toast } from "sonner";
 import { InvoicePrint } from "@/components/InvoicePrint";
 import { UserManual } from "@/components/UserManual";
 
+type Unit = "box" | "leaf" | "pcs";
+
 interface CartItem {
-  id: string;
+  id: string;            // productId + ":" + unit — allows the same product on separate unit lines
+  productId: string;
   name: string;
-  price: number;
-  qty: number;
+  price: number;         // price for the chosen unit
+  qty: number;           // number of chosen units
+  pcs_each: number;      // pieces per chosen unit (for stock + display)
+  unit: Unit;
   category?: string;
+  prices: { pcs: number; leaf: number; box: number };
+  pcsPer: { leaf: number; box: number };
+}
+
+/** Resolve { price, pcs_each, prices } for a unit given a product's config. */
+function unitInfo(p: any, unit: Unit) {
+  const pl = Math.max(1, Number(p.pcs_per_leaf) || 1);
+  const lb = Math.max(1, Number(p.leaves_per_box) || 1);
+  const pcsPrice = Number(p.price) || 0;
+  const prices = {
+    pcs: pcsPrice,
+    leaf: Number(p.price_leaf) || pcsPrice * pl,
+    box: Number(p.price_box) || pcsPrice * pl * lb,
+  };
+  const pcsPer = { leaf: pl, box: pl * lb };
+  if (unit === "box") return { price: prices.box, pcs_each: pcsPer.box, prices, pcsPer };
+  if (unit === "leaf") return { price: prices.leaf, pcs_each: pcsPer.leaf, prices, pcsPer };
+  return { price: prices.pcs, pcs_each: 1, prices, pcsPer };
 }
 
 const Sales = () => {
@@ -151,20 +174,44 @@ const Sales = () => {
 
   const filtered = products;
 
-  const addToCart = (product: any) => {
-    const existing = cart.find((i) => i.id === product.id);
+  // Total pieces already reserved for a product across all its cart lines.
+  const reservedPcs = (productId: string) =>
+    cart.reduce((s, i) => (i.productId === productId ? s + i.qty * i.pcs_each : s), 0);
+
+  const addToCart = (product: any, unit: Unit = "pcs") => {
+    const { price, pcs_each, prices, pcsPer } = unitInfo(product, unit);
+    const lineId = product.id + ":" + unit;
+    if (product.category !== "service") {
+      if (reservedPcs(product.id) + pcs_each > (product.stock || 0)) { toast.error("Not enough stock"); return; }
+    }
+    const existing = cart.find((i) => i.id === lineId);
     if (existing) {
-      if (product.category !== "service" && existing.qty >= product.stock) { toast.error("Not enough stock"); return; }
-      setCart(cart.map((i) => (i.id === product.id ? { ...i, qty: i.qty + 1 } : i)));
+      setCart(cart.map((i) => (i.id === lineId ? { ...i, qty: i.qty + 1 } : i)));
     } else {
-      if (product.category !== "service" && product.stock <= 0) { toast.error("Out of stock"); return; }
-      setCart([...cart, { id: product.id, name: product.name, price: Number(product.price), qty: 1, category: product.category }]);
+      setCart([...cart, { id: lineId, productId: product.id, name: product.name, price, qty: 1, pcs_each, unit, category: product.category, prices, pcsPer }]);
     }
   };
   addToCartRef.current = addToCart;
 
   const updateQty = (id: string, delta: number) => {
     setCart(cart.map((i) => (i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)).filter((i) => i.qty > 0));
+  };
+
+  const removeLine = (id: string) => setCart(cart.filter((i) => i.id !== id));
+
+  // Switch the unit of an existing cart line (re-prices and re-converts pcs).
+  const changeUnit = (item: CartItem, unit: Unit) => {
+    if (unit === item.unit) return;
+    const newId = item.productId + ":" + unit;
+    const other = cart.filter((i) => i.id !== item.id);
+    const merged = other.find((i) => i.id === newId);
+    const qty = item.qty + (merged?.qty || 0);
+    const base = other.filter((i) => i.id !== newId);
+    const { price, pcs_each, prices, pcsPer } = unitInfo(
+      { price: item.prices.pcs, price_leaf: item.prices.leaf, price_box: item.prices.box, pcs_per_leaf: item.pcsPer.leaf, leaves_per_box: item.pcsPer.box / item.pcsPer.leaf },
+      unit
+    );
+    setCart([...base, { id: newId, productId: item.productId, name: item.name, price, qty, pcs_each, unit, category: item.category, prices, pcsPer }]);
   };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -180,9 +227,10 @@ const Sales = () => {
     const items = cart.map((i) => ({
       name: i.name,
       qty: i.qty,
+      unit: i.unit,
       price: i.price,
       total: i.price * i.qty,
-      ...(i.category !== "service" ? { id: i.id } : {}),
+      ...(i.category !== "service" ? { id: i.productId, qty_pcs: i.qty * i.pcs_each } : {}),
     }));
 
     try {
@@ -277,23 +325,38 @@ const Sales = () => {
               ))
             ) : filtered.length === 0 ? (
               <p className="col-span-full py-8 text-center text-xs text-muted-foreground">No products found</p>
-            ) : filtered.map((p) => (
-              <button key={p.id} onClick={() => addToCart(p)}
-                className="flex items-center justify-between p-2.5 rounded-lg border border-border hover:bg-accent/50 text-left transition-colors disabled:opacity-50"
-                disabled={p.category !== "service" && p.stock <= 0}>
+            ) : filtered.map((p) => {
+              const ui = unitInfo(p, "pcs");
+              const isService = p.category === "service";
+              const out = !isService && p.stock <= 0;
+              return (
+              <div key={p.id}
+                className={`flex items-center justify-between p-2.5 rounded-lg border border-border text-left transition-colors ${out ? "opacity-50" : ""}`}>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-xs sm:text-sm text-foreground truncate">{p.name}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{p.generic_name}</p>
-                  {p.category === "service" && <Badge variant="outline" className="text-[9px] mt-0.5">Service</Badge>}
+                  {isService
+                    ? <Badge variant="outline" className="text-[9px] mt-0.5">Service</Badge>
+                    : <Badge variant={p.stock === 0 ? "destructive" : p.stock < 20 ? "outline" : "secondary"} className="text-[9px] mt-0.5">{p.stock} pcs</Badge>}
                 </div>
-                <div className="text-right shrink-0 ml-2">
-                  <p className="font-bold text-xs sm:text-sm text-primary">৳{Number(p.price).toFixed(0)}</p>
-                  {p.category !== "service" && (
-                    <Badge variant={p.stock === 0 ? "destructive" : p.stock < 20 ? "outline" : "secondary"} className="text-[9px]">{p.stock}</Badge>
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => addToCart(p, "pcs")}>
+                    Pcs ৳{ui.prices.pcs.toFixed(0)}
+                  </Button>
+                  {!isService && ui.prices.leaf > 0 && ui.pcsPer.leaf > 1 && (
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => addToCart(p, "leaf")}>
+                      Leaf ৳{ui.prices.leaf.toFixed(0)}
+                    </Button>
+                  )}
+                  {!isService && ui.prices.box > 0 && ui.pcsPer.box > 1 && (
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={out} onClick={() => addToCart(p, "box")}>
+                      Box ৳{ui.prices.box.toFixed(0)}
+                    </Button>
                   )}
                 </div>
-              </button>
-            ))}
+              </div>
+              );
+            })}
           </div>
         </div>
 
@@ -315,14 +378,30 @@ const Sales = () => {
                   <p className="text-center text-muted-foreground text-xs py-4">Scan or search to add items</p>
                 ) : cart.map((item) => (
                   <div key={item.id} className="flex items-center gap-1.5 text-xs">
-                    <span className="flex-1 truncate">{item.name}</span>
+                    <span className="flex-1 truncate">
+                      {item.name}
+                      <span className="text-[10px] text-muted-foreground"> · ৳{item.price.toFixed(0)}/{item.unit}</span>
+                    </span>
+                    {item.category !== "service" && item.pcsPer.box > 1 ? (
+                      <select
+                        value={item.unit}
+                        onChange={(e) => changeUnit(item, e.target.value as Unit)}
+                        className="h-6 text-[10px] rounded border border-border bg-background px-0.5"
+                      >
+                        <option value="pcs">Pcs</option>
+                        {item.pcsPer.leaf > 1 && <option value="leaf">Leaf</option>}
+                        {item.pcsPer.box > 1 && <option value="box">Box</option>}
+                      </select>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground uppercase">{item.unit}</span>
+                    )}
                     <div className="flex items-center gap-0.5">
                       <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQty(item.id, -1)}><Minus className="h-3 w-3" /></Button>
                       <span className="w-5 text-center font-medium">{item.qty}</span>
                       <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQty(item.id, 1)}><Plus className="h-3 w-3" /></Button>
                     </div>
                     <span className="w-14 text-right font-medium">৳{(item.price * item.qty).toFixed(0)}</span>
-                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setCart(cart.filter((i) => i.id !== item.id))}><X className="h-3 w-3 text-destructive" /></Button>
+                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeLine(item.id)}><X className="h-3 w-3 text-destructive" /></Button>
                   </div>
                 ))}
               </div>

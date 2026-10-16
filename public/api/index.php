@@ -360,51 +360,37 @@ try {
             if ($method === 'POST') {
                 $userId = require_auth($pdo, $config);
                 require_roles($pdo, $userId, ['staff', 'admin', 'super_admin']);
+                ensure_products_unit_schema($pdo);
                 $b = api_body();
                 $id = uuid();
-                $hasMfr = db_has_column($pdo, 'products', 'manufacturer');
-                if ($hasMfr) {
-                    $pdo->prepare(
-                        'INSERT INTO products (id, name, name_bn, generic_name, manufacturer, category, price, stock, min_stock, batch_number, expiry_date, requires_prescription, description, description_bn, image_url)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
-                    )->execute([
-                        $id,
-                        $b['name'] ?? '',
-                        $b['name_bn'] ?? null,
-                        $b['generic_name'] ?? null,
-                        $b['manufacturer'] ?? null,
-                        $b['category'] ?? null,
-                        $b['price'] ?? 0,
-                        $b['stock'] ?? 0,
-                        $b['min_stock'] ?? 10,
-                        $b['batch_number'] ?? null,
-                        $b['expiry_date'] ?? null,
-                        !empty($b['requires_prescription']) ? 1 : 0,
-                        $b['description'] ?? null,
-                        $b['description_bn'] ?? null,
-                        $b['image_url'] ?? null,
-                    ]);
-                } else {
-                    $pdo->prepare(
-                        'INSERT INTO products (id, name, name_bn, generic_name, category, price, stock, min_stock, batch_number, expiry_date, requires_prescription, description, description_bn, image_url)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
-                    )->execute([
-                        $id,
-                        $b['name'] ?? '',
-                        $b['name_bn'] ?? null,
-                        $b['generic_name'] ?? null,
-                        $b['category'] ?? null,
-                        $b['price'] ?? 0,
-                        $b['stock'] ?? 0,
-                        $b['min_stock'] ?? 10,
-                        $b['batch_number'] ?? null,
-                        $b['expiry_date'] ?? null,
-                        !empty($b['requires_prescription']) ? 1 : 0,
-                        $b['description'] ?? null,
-                        $b['description_bn'] ?? null,
-                        $b['image_url'] ?? null,
-                    ]);
+
+                $cols = [
+                    'name' => $b['name'] ?? '',
+                    'name_bn' => $b['name_bn'] ?? null,
+                    'generic_name' => $b['generic_name'] ?? null,
+                    'category' => $b['category'] ?? null,
+                    'price' => $b['price'] ?? 0,
+                    'stock' => $b['stock'] ?? 0,
+                    'min_stock' => $b['min_stock'] ?? 10,
+                    'batch_number' => $b['batch_number'] ?? null,
+                    'expiry_date' => $b['expiry_date'] ?? null,
+                    'requires_prescription' => !empty($b['requires_prescription']) ? 1 : 0,
+                    'description' => $b['description'] ?? null,
+                    'description_bn' => $b['description_bn'] ?? null,
+                    'image_url' => $b['image_url'] ?? null,
+                    'pcs_per_leaf' => max(1, (int) ($b['pcs_per_leaf'] ?? 1)),
+                    'leaves_per_box' => max(1, (int) ($b['leaves_per_box'] ?? 1)),
+                    'price_leaf' => $b['price_leaf'] ?? 0,
+                    'price_box' => $b['price_box'] ?? 0,
+                ];
+                if (db_has_column($pdo, 'products', 'manufacturer')) {
+                    $cols['manufacturer'] = $b['manufacturer'] ?? null;
                 }
+                $fields = array_keys($cols);
+                $placeholders = implode(',', array_fill(0, count($fields), '?'));
+                $pdo->prepare(
+                    'INSERT INTO products (id, ' . implode(', ', $fields) . ') VALUES (?, ' . $placeholders . ')'
+                )->execute(array_merge([$id], array_values($cols)));
                 api_json(['data' => ['id' => $id]], 201);
             }
             api_error('Method not allowed', 405);
@@ -465,6 +451,27 @@ try {
                 })(),
             ]]);
 
+        case 'migrate':
+            // Idempotent schema migration. Super-admin only.
+            $userId = require_auth($pdo, $config);
+            require_roles($pdo, $userId, ['super_admin']);
+            ensure_products_unit_schema($pdo);
+            api_json(['data' => ['ok' => true, 'columns' => ['pcs_per_leaf', 'leaves_per_box', 'price_leaf', 'price_box']]]);
+
+        case 'products_wipe':
+            // Danger: remove ALL products (including category='service'). Super-admin only.
+            // FK checks are disabled so order_items history is preserved (rows orphaned, not deleted).
+            if ($method !== 'POST') {
+                api_error('POST required', 405);
+            }
+            $userId = require_auth($pdo, $config);
+            require_roles($pdo, $userId, ['super_admin']);
+            $before = (int) $pdo->query('SELECT COUNT(*) FROM products')->fetchColumn();
+            db_fk_off($pdo);
+            $pdo->exec('DELETE FROM products');
+            db_fk_on($pdo);
+            api_json(['data' => ['deleted' => $before]]);
+
         case 'product':
             $id = $_GET['id'] ?? null;
             if (!$id) {
@@ -479,48 +486,34 @@ try {
             if ($method === 'PUT') {
                 $userId = require_auth($pdo, $config);
                 require_roles($pdo, $userId, ['staff', 'admin', 'super_admin']);
+                ensure_products_unit_schema($pdo);
                 $b = api_body();
-                $hasMfr = db_has_column($pdo, 'products', 'manufacturer');
-                if ($hasMfr) {
-                    $pdo->prepare(
-                        'UPDATE products SET name=?, name_bn=?, generic_name=?, manufacturer=?, category=?, price=?, stock=?, min_stock=?, batch_number=?, expiry_date=?, requires_prescription=?, description=?, description_bn=?, image_url=? WHERE id=?'
-                    )->execute([
-                        $b['name'] ?? '',
-                        $b['name_bn'] ?? null,
-                        $b['generic_name'] ?? null,
-                        $b['manufacturer'] ?? null,
-                        $b['category'] ?? null,
-                        $b['price'] ?? 0,
-                        $b['stock'] ?? 0,
-                        $b['min_stock'] ?? 10,
-                        $b['batch_number'] ?? null,
-                        $b['expiry_date'] ?? null,
-                        !empty($b['requires_prescription']) ? 1 : 0,
-                        $b['description'] ?? null,
-                        $b['description_bn'] ?? null,
-                        $b['image_url'] ?? null,
-                        $id,
-                    ]);
-                } else {
-                    $pdo->prepare(
-                        'UPDATE products SET name=?, name_bn=?, generic_name=?, category=?, price=?, stock=?, min_stock=?, batch_number=?, expiry_date=?, requires_prescription=?, description=?, description_bn=?, image_url=? WHERE id=?'
-                    )->execute([
-                        $b['name'] ?? '',
-                        $b['name_bn'] ?? null,
-                        $b['generic_name'] ?? null,
-                        $b['category'] ?? null,
-                        $b['price'] ?? 0,
-                        $b['stock'] ?? 0,
-                        $b['min_stock'] ?? 10,
-                        $b['batch_number'] ?? null,
-                        $b['expiry_date'] ?? null,
-                        !empty($b['requires_prescription']) ? 1 : 0,
-                        $b['description'] ?? null,
-                        $b['description_bn'] ?? null,
-                        $b['image_url'] ?? null,
-                        $id,
-                    ]);
+
+                $cols = [
+                    'name' => $b['name'] ?? '',
+                    'name_bn' => $b['name_bn'] ?? null,
+                    'generic_name' => $b['generic_name'] ?? null,
+                    'category' => $b['category'] ?? null,
+                    'price' => $b['price'] ?? 0,
+                    'stock' => $b['stock'] ?? 0,
+                    'min_stock' => $b['min_stock'] ?? 10,
+                    'batch_number' => $b['batch_number'] ?? null,
+                    'expiry_date' => $b['expiry_date'] ?? null,
+                    'requires_prescription' => !empty($b['requires_prescription']) ? 1 : 0,
+                    'description' => $b['description'] ?? null,
+                    'description_bn' => $b['description_bn'] ?? null,
+                    'image_url' => $b['image_url'] ?? null,
+                    'pcs_per_leaf' => max(1, (int) ($b['pcs_per_leaf'] ?? 1)),
+                    'leaves_per_box' => max(1, (int) ($b['leaves_per_box'] ?? 1)),
+                    'price_leaf' => $b['price_leaf'] ?? 0,
+                    'price_box' => $b['price_box'] ?? 0,
+                ];
+                if (db_has_column($pdo, 'products', 'manufacturer')) {
+                    $cols['manufacturer'] = $b['manufacturer'] ?? null;
                 }
+                $sets = implode(', ', array_map(fn($c) => "$c = ?", array_keys($cols)));
+                $pdo->prepare("UPDATE products SET $sets WHERE id = ?")
+                    ->execute(array_merge(array_values($cols), [$id]));
                 api_json(['data' => ['id' => $id]]);
             }
             if ($method === 'DELETE') {
@@ -709,10 +702,11 @@ try {
                 ]);
                 foreach ($items as $item) {
                     if (!empty($item['id']) && !empty($item['qty'])) {
+                        $dec = isset($item['qty_pcs']) ? (int) $item['qty_pcs'] : (int) $item['qty'];
                         $pdo->prepare('UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?')->execute([
-                            $item['qty'],
+                            $dec,
                             $item['id'],
-                            $item['qty'],
+                            $dec,
                         ]);
                     }
                 }

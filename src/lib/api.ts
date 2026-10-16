@@ -292,6 +292,8 @@ export const api = {
     update: (id: string, payload: Record<string, unknown>) =>
       request("product", { method: "PUT", query: { id }, body: payload }),
     delete: (id: string) => request("product", { method: "DELETE", query: { id } }),
+    wipe: () => request<{ data: { deleted: number } }>("products_wipe", { method: "POST", auth: true }).then((r) => r.data),
+    migrate: () => request<{ data: { ok: boolean } }>("migrate", { method: "POST", auth: true }).then((r) => r.data),
   },
 
   orders: {
