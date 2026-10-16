@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { MobileNav } from "@/components/MobileNav";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import Footer from "@/components/Footer";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </h2>
             </div>
             <div className="flex items-center gap-1">
+              <LanguageToggle compact className="text-white/70 hover:text-white hover:bg-white/10" />
               <ThemeSwitcher className="text-white/70 hover:text-white hover:bg-white/10" />
               <NotificationBell className="text-white/70 hover:text-white hover:bg-white/10" />
             </div>
